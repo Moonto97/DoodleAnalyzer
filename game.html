@@ -966,6 +966,7 @@ async function startAnalysis() {
             document.getElementById('share-btn').disabled = false;
             document.getElementById('share-btn').textContent = '🌟 갤러리 공유';
             document.getElementById('modal').classList.add('show');
+            document.getElementById('modal-card').scrollTop = 0;
             return;
         } catch (e) {
             console.error('GPT error:', e);
@@ -984,6 +985,7 @@ async function startAnalysis() {
     document.getElementById('share-btn').disabled = false;
     document.getElementById('share-btn').textContent = '🌟 갤러리 공유';
     document.getElementById('modal').classList.add('show');
+    document.getElementById('modal-card').scrollTop = 0;
 }
 
 function closeModal() {
