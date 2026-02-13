@@ -28,6 +28,7 @@ PROXY_PORT = 8502
 # Load secrets from .streamlit/secrets.toml via st.secrets
 try:
     API_KEY = st.secrets.get('OPENAI_API_KEY', '')
+    PROXY_API_URL = st.secrets.get('PROXY_API_URL', '')
     _smtp = st.secrets.get('smtp', {})
     SMTP_EMAIL = _smtp.get('email', '') if _smtp else ''
     SMTP_PASSWORD = _smtp.get('password', '') if _smtp else ''
@@ -35,6 +36,7 @@ try:
     SMTP_PORT = int(_smtp.get('port', 587)) if _smtp else 587
 except FileNotFoundError:
     API_KEY = ''
+    PROXY_API_URL = ''
     SMTP_EMAIL = ''
     SMTP_PASSWORD = ''
     SMTP_SERVER = 'smtp.gmail.com'
@@ -242,6 +244,7 @@ with open(html_path, 'r', encoding='utf-8') as f:
 
 # Inject configuration into HTML
 html_content = html_content.replace('__PROXY_PORT__', str(PROXY_PORT))
-html_content = html_content.replace('__HAS_API_KEY__', 'true' if API_KEY else 'false')
+html_content = html_content.replace('__HAS_API_KEY__', 'true' if (API_KEY or PROXY_API_URL) else 'false')
+html_content = html_content.replace('__PROXY_API_URL__', PROXY_API_URL.rstrip('/'))
 
 components.html(html_content, height=860, scrolling=False)
