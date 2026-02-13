@@ -390,4 +390,4 @@ html_content = html_content.replace('__PROXY_PORT__', str(PROXY_PORT))
 html_content = html_content.replace('__HAS_API_KEY__', 'true' if (API_KEY or PROXY_API_URL) else 'false')
 html_content = html_content.replace('__PROXY_API_URL__', PROXY_API_URL.rstrip('/'))
 
-components.html(html_content, height=1270, scrolling=False)
+components.html(html_content, height=900, scrolling=False)
