@@ -1,7 +1,15 @@
 {
-  "functions": {
-    "api/analyze.js": {
-      "maxDuration": 60
+  "builds": [
+    {
+      "src": "api/analyze.js",
+      "use": "@vercel/node"
     }
-  }
+  ],
+  "routes": [
+    {
+      "src": "/api/analyze",
+      "methods": ["POST", "OPTIONS"],
+      "dest": "/api/analyze"
+    }
+  ]
 }
