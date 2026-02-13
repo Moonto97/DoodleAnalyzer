@@ -1227,15 +1227,36 @@ async function sendEmail() {
 
     try {
         const imageData = generateResultImage();
+        const bodyPayload = JSON.stringify({ email: email, image: imageData });
 
+        // 1) Vercel 프록시 시도
+        if (PROXY_API_URL) {
+            try {
+                const response = await fetch(PROXY_API_URL + '/api/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: bodyPayload
+                });
+                const data = await response.json();
+                if (response.ok && !data.error) {
+                    status.className = 'success';
+                    status.textContent = `✅ ${email}로 전송 완료!`;
+                    setTimeout(() => closeEmailModal(), 2000);
+                    return;
+                }
+                throw new Error(data.error || 'Vercel 이메일 전송 실패');
+            } catch (vercelError) {
+                console.log('Vercel email failed:', vercelError.message);
+            }
+        }
+
+        // 2) localhost 프록시 폴백 (로컬 개발용)
         const response = await fetch(PROXY_URL + '/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email, image: imageData })
+            body: bodyPayload
         });
-
         const data = await response.json();
-
         if (response.ok && !data.error) {
             status.className = 'success';
             status.textContent = `✅ ${email}로 전송 완료!`;
