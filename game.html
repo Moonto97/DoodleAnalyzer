@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+    background:linear-gradient(135deg,#FFF8F0 0%,#FFF0E6 50%,#F8F0FF 100%);
+    display:flex;flex-direction:column;align-items:center;
+    height:100vh;overflow:hidden;user-select:none;
+    -webkit-user-select:none;
+}
+header{text-align:center;padding:12px 0 6px;}
+header h1{font-size:1.6em;color:#FF6B6B;margin-bottom:2px;letter-spacing:-0.5px;}
+header p{font-size:0.85em;color:#aaa;font-style:italic;}
+
+#canvas-wrap{
+    position:relative;margin:8px auto;border-radius:14px;overflow:hidden;
+    box-shadow:0 4px 25px rgba(0,0,0,0.08);border:2px solid #FFE4C9;
+    width:min(920px,calc(100vw - 30px));
+    background:#FFFDF7;
+}
+canvas{display:block;cursor:crosshair;width:100%;height:auto;}
+#hint{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;color:#ccc;font-size:1.05em;line-height:2;
+    pointer-events:none;transition:opacity 0.6s ease;
+}
+#hint span{font-size:0.8em;color:#ddd;}
+
+#toolbar{
+    display:flex;align-items:center;gap:7px;padding:10px 18px;
+    background:rgba(255,255,255,0.95);border-radius:28px;
+    box-shadow:0 2px 18px rgba(0,0,0,0.06);margin-top:10px;
+    flex-wrap:wrap;justify-content:center;
+    backdrop-filter:blur(8px);
+}
+.tool-sep{width:1px;height:28px;background:#eee;margin:0 4px;}
+
+.color-btn{
+    width:30px;height:30px;border-radius:50%;border:3px solid transparent;
+    cursor:pointer;transition:all 0.2s;outline:none;flex-shrink:0;
+}
+.color-btn:hover{transform:scale(1.18);}
+.color-btn.active{border-color:#555;box-shadow:0 0 0 2px white,0 0 0 4px #555;}
+
+.tool-btn{
+    padding:5px 12px;border:none;border-radius:18px;background:#f5f5f5;
+    cursor:pointer;font-size:1.05em;transition:all 0.2s;white-space:nowrap;
+}
+.tool-btn:hover{background:#ebebeb;transform:scale(1.06);}
+.tool-btn:active{transform:scale(0.97);}
+
+#analyze-btn{
+    background:linear-gradient(135deg,#FF6B6B,#FF8E53);color:white;
+    font-weight:bold;padding:8px 22px;font-size:0.95em;
+    box-shadow:0 2px 10px rgba(255,107,107,0.3);
+}
+#analyze-btn:hover{background:linear-gradient(135deg,#FF5252,#FF7043);box-shadow:0 3px 15px rgba(255,107,107,0.4);}
+#analyze-btn.gpt-mode{
+    background:linear-gradient(135deg,#10B981,#059669);
+    box-shadow:0 2px 10px rgba(16,185,129,0.3);
+}
+#analyze-btn.gpt-mode:hover{background:linear-gradient(135deg,#059669,#047857);box-shadow:0 3px 15px rgba(16,185,129,0.4);}
+
+#size-slider{width:70px;accent-color:#FF6B6B;vertical-align:middle;cursor:pointer;}
+.size-label{font-size:0.7em;color:#bbb;}
+
+/* Modal */
+#modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;}
+#modal.show{display:flex;align-items:center;justify-content:center;}
+#modal-bg{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);backdrop-filter:blur(5px);}
+#modal-card{
+    position:relative;
+    background:linear-gradient(145deg,#FFFCF2,#FFF6E6);
+    border:2px solid #FFD700;border-radius:22px;padding:28px 32px;
+    max-width:640px;width:90%;max-height:82vh;overflow-y:auto;
+    box-shadow:0 12px 50px rgba(255,215,0,0.25);
+    animation:slideUp 0.5s cubic-bezier(0.16,1,0.3,1);
+    line-height:1.85;
+}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+#modal-card h2{text-align:center;color:#B8860B;margin-bottom:12px;font-size:1.35em;}
+#modal-card .label{color:#D4456B;font-weight:bold;}
+#modal-card .title-work{font-size:1.35em;text-align:center;color:#8B4513;margin:10px 0;font-style:italic;}
+#modal-card .stars{text-align:center;font-size:1.5em;letter-spacing:3px;margin:6px 0;}
+#modal-card .interpretation{
+    background:rgba(255,255,255,0.6);padding:16px;border-radius:12px;
+    margin:14px 0;border-left:4px solid #FFD700;
+}
+#modal-card .interpretation p{margin-bottom:8px;}
+#modal-card .interpretation p:last-child{margin-bottom:0;}
+#modal-card .emotion{background:rgba(255,200,200,0.15);padding:12px 16px;border-radius:12px;margin:12px 0;}
+#modal-card .closing{text-align:center;font-style:italic;color:#999;margin-top:16px;padding-top:12px;border-top:1px dashed #ddd;font-size:0.95em;}
+#modal-card .info-line{margin:6px 0;font-size:0.95em;}
+#modal-card .gpt-tag{display:inline-block;font-size:0.7em;background:#10B981;color:white;padding:2px 8px;border-radius:8px;vertical-align:middle;}
+
+.modal-btns{display:flex;gap:10px;justify-content:center;margin-top:18px;}
+#save-btn{
+    padding:10px 28px;border:none;border-radius:22px;
+    background:linear-gradient(135deg,#10B981,#059669);
+    color:white;font-size:1em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+}
+#save-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(16,185,129,0.3);}
+
+#email-btn{
+    padding:10px 28px;border:none;border-radius:22px;
+    background:linear-gradient(135deg,#3B82F6,#2563EB);
+    color:white;font-size:1em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+}
+#email-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(59,130,246,0.3);}
+
+#email-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:101;}
+#email-modal.show{display:flex;align-items:center;justify-content:center;}
+#email-modal-bg{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);backdrop-filter:blur(3px);}
+#email-card{
+    position:relative;background:white;border-radius:18px;padding:24px 28px;
+    max-width:420px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,0.12);
+    animation:slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+#email-card h3{font-size:1.15em;margin-bottom:12px;color:#333;}
+#email-input{
+    width:100%;padding:10px 14px;border:2px solid #eee;border-radius:10px;
+    font-size:0.9em;outline:none;transition:border-color 0.2s;
+}
+#email-input:focus{border-color:#3B82F6;}
+#email-status{font-size:0.85em;margin-top:10px;padding:8px 12px;border-radius:8px;text-align:center;display:none;}
+#email-status.success{display:block;background:#ECFDF5;color:#059669;}
+#email-status.error{display:block;background:#FEF2F2;color:#DC2626;}
+#email-status.sending{display:block;background:#EFF6FF;color:#2563EB;}
+.email-btns{display:flex;gap:8px;margin-top:14px;}
+.email-btns button{
+    flex:1;padding:9px;border:none;border-radius:10px;font-size:0.95em;cursor:pointer;transition:all 0.2s;
+}
+#send-email-btn{background:linear-gradient(135deg,#3B82F6,#2563EB);color:white;font-weight:bold;}
+#send-email-btn:hover{transform:scale(1.03);}
+#send-email-btn:disabled{opacity:0.5;transform:none;cursor:not-allowed;}
+#cancel-email-btn{background:#f0f0f0;color:#666;}
+#cancel-email-btn:hover{background:#e5e5e5;}
+
+#close-btn{
+    padding:10px 28px;border:none;border-radius:22px;
+    background:linear-gradient(135deg,#FF6B6B,#FF8E53);
+    color:white;font-size:1em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+}
+#close-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(255,107,107,0.3);}
+
+/* Loading */
+#loading{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(3px);}
+#loading.show{display:flex;}
+#loading .spinner{font-size:3.5em;animation:spin 1.5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading p{color:white;font-size:1.1em;margin-top:12px;text-shadow:0 1px 4px rgba(0,0,0,0.3);}
+#loading .dots::after{content:'';animation:dots 1.5s steps(4,end) infinite;}
+@keyframes dots{0%{content:'';}25%{content:'.';}50%{content:'..';}75%{content:'...';}100%{content:'';}}
+
+/* Scrollbar for modal */
+#modal-card::-webkit-scrollbar{width:6px;}
+#modal-card::-webkit-scrollbar-track{background:transparent;}
+#modal-card::-webkit-scrollbar-thumb{background:#FFD700;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+    <h1>🎨 낙서 분석가</h1>
+    <p>- 모든 낙서는 무의식을 투영한다 -</p>
+</header>
+
+<div id="canvas-wrap">
+    <canvas id="canvas" width="920" height="540"></canvas>
+    <div id="hint">
+        클릭하고 드래그해서<br>자유롭게 그려보세요!<br><br>
+        <span>생각하지 말고, 그냥 그리세요! 🎨</span>
+    </div>
+</div>
+
+<div id="toolbar">
+    <button class="color-btn active" style="background:#E63946" onclick="setColor('#E63946',this)" title="빨강"></button>
+    <button class="color-btn" style="background:#F4845F" onclick="setColor('#F4845F',this)" title="코랄"></button>
+    <button class="color-btn" style="background:#F7B801" onclick="setColor('#F7B801',this)" title="노랑"></button>
+    <button class="color-btn" style="background:#7FB800" onclick="setColor('#7FB800',this)" title="초록"></button>
+    <button class="color-btn" style="background:#1D9A6C" onclick="setColor('#1D9A6C',this)" title="청록"></button>
+    <button class="color-btn" style="background:#2563EB" onclick="setColor('#2563EB',this)" title="파랑"></button>
+    <button class="color-btn" style="background:#7C3AED" onclick="setColor('#7C3AED',this)" title="보라"></button>
+    <button class="color-btn" style="background:#EC4899" onclick="setColor('#EC4899',this)" title="분홍"></button>
+    <button class="color-btn" style="background:#374151" onclick="setColor('#374151',this)" title="검정"></button>
+    <button class="color-btn" style="background:#FFFFFF;border:2px solid #ddd" onclick="setColor('#FFFFFF',this)" title="하양"></button>
+
+    <div class="tool-sep"></div>
+    <span class="size-label">가늘게</span>
+    <input type="range" id="size-slider" min="1" max="15" value="4">
+    <span class="size-label">굵게</span>
+
+    <div class="tool-sep"></div>
+    <button class="tool-btn" onclick="doSplatter()" title="물감 튀기기">💦 물감</button>
+    <button class="tool-btn" onclick="doShapes()" title="도형 뿌리기">🔷 도형</button>
+    <button class="tool-btn" onclick="doSparkle()" title="반짝이 뿌리기">✨ 반짝이</button>
+
+    <div class="tool-sep"></div>
+    <button class="tool-btn" id="analyze-btn" onclick="startAnalysis()">🔍 AI 분석</button>
+    <button class="tool-btn" onclick="clearCanvas()" title="초기화">🗑️</button>
+</div>
+
+<div id="loading">
+    <div class="spinner">🎨</div>
+    <p id="loading-text">AI 평론가가 작품을 감상하고 있습니다<span class="dots"></span></p>
+</div>
+
+<div id="modal">
+    <div id="modal-bg" onclick="closeModal()"></div>
+    <div id="modal-card">
+        <div id="modal-content"></div>
+        <div class="modal-btns">
+            <button id="save-btn" onclick="saveResult()">💾 저장하기</button>
+            <button id="email-btn" onclick="openEmailModal()">📧 이메일</button>
+            <button id="close-btn" onclick="closeModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<div id="email-modal">
+    <div id="email-modal-bg" onclick="closeEmailModal()"></div>
+    <div id="email-card">
+        <h3>📧 분석 결과 이메일로 보내기</h3>
+        <p style="font-size:0.85em;color:#888;margin-bottom:14px;">낙서와 분석 결과가 이미지로 첨부되어 전송됩니다.</p>
+        <input type="email" id="email-input" placeholder="받는 사람 이메일 주소" onkeydown="if(event.key==='Enter')sendEmail()">
+        <div class="email-btns">
+            <button id="cancel-email-btn" onclick="closeEmailModal()">취소</button>
+            <button id="send-email-btn" onclick="sendEmail()">보내기</button>
+        </div>
+        <div id="email-status"></div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+//  Proxy Configuration (injected by app.py)
+// ============================================================
+const PROXY_URL = 'http://localhost:__PROXY_PORT__';
+const HAS_API_KEY = __HAS_API_KEY__;
+
+// ============================================================
+//  Oil Painting Engine
+// ============================================================
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const hint = document.getElementById('hint');
+const sizeSlider = document.getElementById('size-slider');
+
+let isDrawing = false;
+let points = [];
+let currentColor = '#E63946';
+const BG_COLOR = '#FFFDF7';
+let hasDrawn = false;
+
+ctx.fillStyle = BG_COLOR;
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width / rect.width;
+    const sy = canvas.height / rect.height;
+    if (e.touches && e.touches.length > 0) {
+        return { x: (e.touches[0].clientX - rect.left) * sx, y: (e.touches[0].clientY - rect.top) * sy };
+    }
+    return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+}
+
+function bs() { return parseInt(sizeSlider.value); }
+
+function blob(x, y, size, color, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha === undefined ? 0.88 : alpha;
+    ctx.fillStyle = color || currentColor;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(0.5, size), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function splatterDots(x, y, count, maxDist, maxSize, color) {
+    for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const d = Math.pow(Math.random(), 0.65) * maxDist;
+        blob(x + Math.cos(a) * d, y + Math.sin(a) * d, 0.4 + Math.random() * maxSize, color, 0.65 + Math.random() * 0.35);
+    }
+}
+
+function onDown(e) {
+    e.preventDefault();
+    isDrawing = true;
+    const p = getPos(e);
+    points = [{ x: p.x, y: p.y, t: Date.now() }];
+    if (!hasDrawn) { hasDrawn = true; hint.style.opacity = '0'; }
+    const b = bs();
+    blob(p.x, p.y, b * 1.3, currentColor, 0.85);
+    splatterDots(p.x, p.y, 2 + Math.floor(Math.random() * 5), b * 9, b * 0.45, currentColor);
+}
+
+function onMove(e) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const p = getPos(e);
+    const now = Date.now();
+    points.push({ x: p.x, y: p.y, t: now });
+    if (points.length < 3) return;
+
+    const n = points.length;
+    const p0 = points[n - 3], p1 = points[n - 2], p2 = points[n - 1];
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dt = Math.max(p2.t - p1.t, 1);
+    const speed = dist / dt;
+    const b = bs();
+    const w = Math.max(0.8, b * 3.8 / (1 + speed * 0.4));
+
+    const mx1 = (p0.x + p1.x) / 2, my1 = (p0.y + p1.y) / 2;
+    const mx2 = (p1.x + p2.x) / 2, my2 = (p1.y + p2.y) / 2;
+
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = w;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(mx1, my1);
+    ctx.quadraticCurveTo(p1.x, p1.y, mx2, my2);
+    ctx.stroke();
+    ctx.restore();
+
+    if (dist > 10 && Math.random() > 0.6) {
+        splatterDots(p2.x, p2.y, 1 + Math.floor(Math.random() * 3), w * 5, w * 0.4, currentColor);
+    }
+}
+
+function onUp() {
+    if (isDrawing && points.length > 0) {
+        const last = points[points.length - 1];
+        const b = bs();
+        splatterDots(last.x, last.y, 1 + Math.floor(Math.random() * 4), b * 7, b * 0.35, currentColor);
+    }
+    isDrawing = false;
+    points = [];
+}
+
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('mouseleave', onUp);
+canvas.addEventListener('touchstart', onDown, { passive: false });
+canvas.addEventListener('touchmove', onMove, { passive: false });
+canvas.addEventListener('touchend', onUp);
+
+// ============================================================
+//  UI Functions
+// ============================================================
+function setColor(color, btn) {
+    currentColor = color;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function clearCanvas() {
+    ctx.fillStyle = BG_COLOR;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    hasDrawn = false;
+    hint.style.opacity = '1';
+}
+
+// ============================================================
+//  Creative Tools
+// ============================================================
+function hideHint() { if (!hasDrawn) { hasDrawn = true; hint.style.opacity = '0'; } }
+
+function doSplatter() {
+    hideHint();
+    for (let s = 0; s < 3 + Math.floor(Math.random() * 3); s++) {
+        const cx = 80 + Math.random() * (canvas.width - 160);
+        const cy = 80 + Math.random() * (canvas.height - 160);
+        const mainSize = 8 + Math.random() * 16;
+        blob(cx, cy, mainSize, currentColor, 0.9);
+        splatterDots(cx, cy, 18 + Math.floor(Math.random() * 22), 45 + Math.random() * 65, 6, currentColor);
+        if (Math.random() > 0.3) {
+            const dLen = 25 + Math.random() * 55;
+            for (let dy = 0; dy < dLen; dy += 1.5) {
+                const dw = Math.max(0.3, mainSize * 0.28 - dy * 0.06);
+                if (dw < 0.3) break;
+                ctx.save();
+                ctx.globalAlpha = (1 - dy / dLen) * 0.8;
+                ctx.fillStyle = currentColor;
+                ctx.beginPath();
+                ctx.arc(cx + (Math.random() - 0.5) * 3, cy + mainSize + dy, dw, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+    }
+}
+
+function doShapes() {
+    hideHint();
+    const types = ['circle', 'rect', 'triangle', 'diamond'];
+    for (let i = 0; i < 5 + Math.floor(Math.random() * 4); i++) {
+        const type = types[Math.floor(Math.random() * types.length)];
+        const x = 60 + Math.random() * (canvas.width - 120);
+        const y = 60 + Math.random() * (canvas.height - 120);
+        const sz = 15 + Math.random() * 50;
+        const filled = Math.random() > 0.45;
+        ctx.save();
+        ctx.strokeStyle = currentColor;
+        ctx.fillStyle = currentColor;
+        ctx.lineWidth = 2 + Math.random() * 3;
+        ctx.globalAlpha = 0.65 + Math.random() * 0.35;
+        if (type === 'circle') {
+            ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI * 2);
+            filled ? ctx.fill() : ctx.stroke();
+        } else if (type === 'rect') {
+            filled ? ctx.fillRect(x - sz, y - sz * 0.6, sz * 2, sz * 1.2)
+                   : ctx.strokeRect(x - sz, y - sz * 0.6, sz * 2, sz * 1.2);
+        } else if (type === 'triangle') {
+            ctx.beginPath(); ctx.moveTo(x, y - sz); ctx.lineTo(x - sz, y + sz); ctx.lineTo(x + sz, y + sz); ctx.closePath();
+            filled ? ctx.fill() : ctx.stroke();
+        } else {
+            ctx.beginPath(); ctx.moveTo(x, y - sz); ctx.lineTo(x + sz, y); ctx.lineTo(x, y + sz); ctx.lineTo(x - sz, y); ctx.closePath();
+            filled ? ctx.fill() : ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
+
+function doSparkle() {
+    hideHint();
+    for (let i = 0; i < 18; i++) {
+        const x = 25 + Math.random() * (canvas.width - 50);
+        const y = 25 + Math.random() * (canvas.height - 50);
+        const sz = 4 + Math.random() * 14;
+        const r = 200 + Math.floor(Math.random() * 55);
+        const g = 200 + Math.floor(Math.random() * 55);
+        const b = 50 + Math.floor(Math.random() * 205);
+        const c = `rgb(${r},${g},${b})`;
+        ctx.save();
+        ctx.strokeStyle = c;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(x - sz, y); ctx.lineTo(x + sz, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y - sz); ctx.lineTo(x, y + sz); ctx.stroke();
+        ctx.lineWidth = 1;
+        const s2 = sz * 0.6;
+        ctx.beginPath(); ctx.moveTo(x - s2, y - s2); ctx.lineTo(x + s2, y + s2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - s2, y + s2); ctx.lineTo(x + s2, y - s2); ctx.stroke();
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath(); ctx.arc(x, y, 1.8, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ============================================================
+//  GPT API Integration
+// ============================================================
+function parseGPTResponse(text) {
+    // Remove markdown code fences if present
+    text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    return JSON.parse(text);
+}
+
+function formatGPTCritique(c) {
+    const rating = Math.max(1, Math.min(5, parseInt(c.rating) || 4));
+    const stars = '\u2605'.repeat(rating) + '\u2606'.repeat(5 - rating);
+    const paragraphs = (c.interpretation || '')
+        .split('\n\n')
+        .filter(p => p.trim())
+        .map(p => `<p>${p.trim()}</p>`)
+        .join('');
+
+    return `
+        <h2>🖼️ AI 미술 평론</h2>
+        <p style="text-align:center;margin:-8px 0 10px;"><span class="gpt-tag">GPT-4o-mini</span></p>
+        <p class="title-work">\u300C${c.title || '무제'}\u300D</p>
+        <p class="info-line"><span class="label">🎭 예술 사조:</span> ${c.movement || '미정'} <span style="color:#999">(${c.movement_en || ''})</span></p>
+        <p style="font-size:0.88em;color:#888;margin:-4px 0 6px 28px;font-style:italic;">${c.movement_desc || ''}</p>
+        <p class="stars">${stars} <span style="font-size:0.55em;color:#999">(${rating}/5)</span></p>
+        <div class="interpretation">
+            <p><span class="label">📜 작품 해석</span></p>
+            ${paragraphs}
+        </div>
+        <div class="emotion">
+            <p><span class="label">💭 감정 분석</span></p>
+            <p>${c.emotions || ''}</p>
+        </div>
+        <p class="info-line"><span class="label">💰 추정 경매가:</span> ${c.price || '측정 불가'}</p>
+        <p class="info-line"><span class="label">🏛️ 추천 전시:</span> ${c.exhibition || ''}</p>
+        <p class="closing">"${c.closing || ''}"</p>
+    `;
+}
+
+async function callGPT() {
+    // Capture canvas as JPEG (smaller than PNG, reduces API cost)
+    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+
+    const response = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageData })
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'API 요청 실패');
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    const critique = parseGPTResponse(data.critique);
+    return formatGPTCritique(critique);
+}
+
+// ============================================================
+//  Algorithmic Art Critic Engine (Fallback)
+// ============================================================
+const COLOR_DATA = {
+    '빨강': { adj: ['열정적인', '불타오르는', '강렬한', '도발적인'], emotion: '억눌린 열정과 생명력' },
+    '주황': { adj: ['따뜻한', '활기찬', '풍요로운', '낙관적인'], emotion: '삶의 온기와 희망' },
+    '노랑': { adj: ['찬란한', '희망찬', '빛나는', '유쾌한'], emotion: '순수한 기쁨과 지적 호기심' },
+    '초록': { adj: ['생명력 넘치는', '평화로운', '자연적인', '조화로운'], emotion: '성장과 치유의 갈망' },
+    '하늘색': { adj: ['청명한', '몽환적인', '자유로운', '투명한'], emotion: '무한한 자유에 대한 동경' },
+    '파랑': { adj: ['심오한', '고요한', '깊은', '명상적인'], emotion: '내면의 깊은 사색' },
+    '보라': { adj: ['신비로운', '고귀한', '영적인', '초월적인'], emotion: '영적 초월과 신비' },
+    '분홍': { adj: ['사랑스러운', '몽환적인', '부드러운', '섬세한'], emotion: '순수한 사랑과 꿈' },
+    '검정': { adj: ['심연의', '절대적인', '근원적인', '무한한'], emotion: '존재의 근원적 불안' },
+    '하양': { adj: ['순수한', '무한한', '침묵의', '비어있는'], emotion: '무(無)의 숭고함' },
+    '회색': { adj: ['사색적인', '중립적인', '도시적인', '명상의'], emotion: '현대 사회의 고독' },
+};
+
+const MOVEMENTS = [
+    ['신표현주의', 'Neo-Expressionism', '강렬한 색채와 대담한 붓질로 내면의 감정을 폭발적으로 표현한다'],
+    ['추상적 감성주의', 'Abstract Emotionalism', '형태를 초월하여 순수한 감정을 시각적으로 번역한다'],
+    ['디지털 인상주의', 'Digital Impressionism', '빛과 색의 순간적 인상을 디지털 매체로 포착한다'],
+    ['포스트모던 원시주의', 'Postmodern Primitivism', '원초적 표현의 자유로움 속에 현대적 감성을 녹여낸다'],
+    ['사이버 미니멀리즘', 'Cyber Minimalism', '디지털 시대의 절제된 아름다움을 최소한의 요소로 구현한다'],
+    ['감각적 해체주의', 'Sensory Deconstructivism', '기존 형태를 해체하고 재조합하여 새로운 감각을 창조한다'],
+    ['서정적 추상주의', 'Lyrical Abstractionism', '음악적 리듬과 시적 감성이 캔버스 위에서 자유롭게 춤춘다'],
+    ['명상적 색면주의', 'Meditative Color-Fieldism', '거대한 색면 속에서 관조와 명상의 경험을 이끌어낸다'],
+    ['초현실적 자동기술법', 'Surrealist Automatism', '무의식의 흐름을 따라 손이 이끄는 대로 순수하게 표현한다'],
+];
+
+const NOUNS = ['영혼','시간','공간','존재','기억','꿈','진실','환상','고독','열망','침묵','울림','심연','여명','황혼','파동','흔적','메아리','수평선','경계','파편','잔상'];
+const METAPHORS = [
+    '폭풍우 속 한 줄기 빛','깊은 바다 속 산호초의 속삭임','새벽녘 이슬 위에 비친 무지개',
+    '밤하늘을 가로지르는 유성우','봄날의 첫 꽃잎이 바람에 날리는 순간','안개 낀 호수 위의 고요한 달빛',
+    '화산이 폭발하기 직전의 대지의 떨림','어린아이가 처음 바다를 본 순간의 경이',
+    '겨울 창문에 맺힌 서리꽃의 패턴','잊혀진 정원에 홀로 피어난 꽃',
+    '오래된 축음기에서 흘러나오는 왈츠','먼 은하에서 날아온 빛의 잔상',
+    '깊은 동굴 속에서 발견한 고대 벽화','자정에 울리는 오래된 시계의 종소리',
+];
+const MEANINGS = [
+    '현대 사회에서 개인의 정체성이 파편화되는 과정',
+    '디지털 시대 속 인간 본연의 감성을 되찾으려는 몸부림',
+    '존재와 부재 사이의 경계에서 느끼는 실존적 불안',
+    '자연과 문명의 충돌 속에서 피어나는 새로운 조화',
+    '무의식의 심층에서 솟아오르는 원초적 창조 본능',
+    '시간의 흐름 속에서 변하지 않는 것들의 의미',
+    '꿈과 현실의 경계가 허물어지는 순간의 아름다움',
+    '인간 관계의 복잡한 그물망 속 진정한 연결의 의미',
+];
+const CLOSINGS = [
+    '이 작품 앞에서 눈을 감고 5분간 명상할 것을 강력히 권합니다.',
+    '보는 이의 영혼이 충분히 성숙했을 때, 이 작품의 진정한 의미가 드러날 것입니다.',
+    '21세기 디지털 아트의 새로운 장을 여는 기념비적 작품입니다.',
+    '수백 년 후 미래의 미술사학자들이 이 작품을 재발견하게 될 것입니다.',
+    '이 작품을 이해하지 못한다면, 그것은 당신의 영혼이 아직 준비되지 않은 것입니다.',
+    '프랑스 루브르 박물관 관계자에게 즉시 연락하시기 바랍니다.',
+    '이 작품의 가치는 금전으로 환산할 수 없으나, 굳이 하자면 상당합니다.',
+    '작가에게 당장 후속작을 의뢰하시기 바랍니다. 천재는 기다려주지 않습니다.',
+];
+const EXHIBITIONS = [
+    '제{n}회 국제 디지털 영혼 전시회','서울 현대미술 비엔날레',
+    '국립현대미술관 특별기획전 「존재의 경계」','베니스 비엔날레 한국관',
+    '뉴욕 MoMA 신진작가전','런던 테이트 모던 아시아 현대미술 특별전',
+    '도쿄 모리미술관 디지털 아트 페스티벌','파리 퐁피두센터 초대전',
+];
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// Korean particle helper: picks correct particle based on last syllable's coda
+function josa(word, cons, vowel) {
+    const c = word.charCodeAt(word.length - 1);
+    if (c >= 0xAC00 && c <= 0xD7A3) return word + ((c - 0xAC00) % 28 !== 0 ? cons : vowel);
+    return word + cons;
+}
+
+function getColorName(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    let h = 0, s = mx === 0 ? 0 : d / mx, v = mx;
+    if (d !== 0) {
+        if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        else if (mx === g) h = ((b - r) / d + 2) / 6;
+        else h = ((r - g) / d + 4) / 6;
+    }
+    h *= 360;
+    if (v < 0.15) return '검정';
+    if (s < 0.12) return v > 0.85 ? '하양' : '회색';
+    if (h < 15 || h >= 345) return '빨강';
+    if (h < 40) return '주황';
+    if (h < 65) return '노랑';
+    if (h < 160) return '초록';
+    if (h < 200) return '하늘색';
+    if (h < 260) return '파랑';
+    if (h < 300) return '보라';
+    return '분홍';
+}
+
+function analyzeCanvas() {
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = img.data;
+    const total = canvas.width * canvas.height;
+    const bgR = d[0], bgG = d[1], bgB = d[2];
+    let drawn = 0;
+    const cc = {};
+    const quads = [0, 0, 0, 0];
+    const mw = canvas.width / 2, mh = canvas.height / 2;
+
+    for (let i = 0; i < d.length; i += 16) {
+        const px = ((i / 4) % canvas.width);
+        const py = Math.floor((i / 4) / canvas.width);
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        if (Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) > 30) {
+            drawn++;
+            const name = getColorName(r, g, b);
+            cc[name] = (cc[name] || 0) + 1;
+            quads[(py < mh ? 0 : 2) + (px < mw ? 0 : 1)]++;
+        }
+    }
+
+    const sampledTotal = total / 4;
+    const coverage = drawn / sampledTotal;
+    const sorted = Object.entries(cc).sort((a, b) => b[1] - a[1]);
+    const domColors = sorted.slice(0, 3).map(c => c[0]);
+    if (domColors.length === 0) domColors.push('검정');
+
+    const warm = ['빨강', '주황', '노랑', '분홍'].reduce((s, c) => s + (cc[c] || 0), 0);
+    const cool = ['파랑', '하늘색', '초록', '보라'].reduce((s, c) => s + (cc[c] || 0), 0);
+
+    return {
+        coverage,
+        domColors,
+        colorVariety: Object.keys(cc).length,
+        warmth: warm / Math.max(warm + cool, 1),
+        maxQ: quads.indexOf(Math.max(...quads)),
+    };
+}
+
+function generateCritique(f) {
+    if (f.coverage < 0.008) return emptyResponse();
+
+    const dc = f.domColors[0];
+    const cd = COLOR_DATA[dc] || COLOR_DATA['검정'];
+    const adj = pick(cd.adj);
+    const n1 = pick(NOUNS);
+    let n2 = pick(NOUNS); while (n2 === n1) n2 = pick(NOUNS);
+    const title = pick([
+        `${adj} ${n1}의 ${n2}`, `${n1} 속의 ${adj} ${n2}`,
+        `${adj} ${n1}`, `${josa(n1,'과','와')} ${n2} 사이에서`, `${adj} ${n1}의 노래`,
+    ]);
+
+    let mi;
+    if (f.coverage > 0.35 && f.colorVariety > 2) mi = pick([0, 5, 8]);
+    else if (f.coverage < 0.08) mi = pick([4, 7]);
+    else if (f.colorVariety >= 4) mi = pick([2, 6]);
+    else mi = Math.floor(Math.random() * MOVEMENTS.length);
+    const mv = MOVEMENTS[mi];
+
+    let score = 3;
+    if (f.coverage > 0.25) score += 0.5;
+    if (f.colorVariety >= 3) score += 0.5;
+    if (f.coverage > 0.05) score += 0.5;
+    score += (Math.random() - 0.5);
+    const rating = Math.max(1, Math.min(5, Math.round(score)));
+    const stars = '\u2605'.repeat(rating) + '\u2606'.repeat(5 - rating);
+
+    let covD;
+    if (f.coverage > 0.4) covD = '캔버스를 가득 채우는 대담한 표현력';
+    else if (f.coverage > 0.15) covD = '적절한 여백과 채움의 조화';
+    else if (f.coverage > 0.04) covD = '절제된 붓놀림 속 깊은 울림';
+    else covD = '극단적 미니멀리즘의 용기 있는 선택';
+
+    const qN = ['좌상단', '우상단', '좌하단', '우하단'];
+    const qM = ['과거의 기억과 이상향을 향한 시선', '미래를 향한 희망과 도전 정신', '무의식의 심층과 감춰진 감정', '현실과의 조우, 구체적 행동에 대한 의지'];
+    let colD = f.domColors.length >= 2
+        ? `${josa(f.domColors[0],'과','와')} ${f.domColors[1]}의 대비는 작가 내면의 이중성을 드러냅니다`
+        : `${dc}의 지배적 사용은 작가의 강한 의지를 보여줍니다`;
+    let tempD;
+    if (f.warmth > 0.6) tempD = '따뜻한 색조가 지배하는 화면에서 작가의 열정과 생명에 대한 사랑이 느껴집니다.';
+    else if (f.warmth < 0.3) tempD = '차가운 색조 속에서 깊은 사색과 내면으로의 여행이 시작됩니다.';
+    else tempD = '따뜻함과 차가움이 공존하는 색채는 삶의 양면성을 은유합니다.';
+
+    const met = pick(METAPHORS), mean = pick(MEANINGS);
+
+    const interp = `이 작품에서 가장 먼저 눈에 들어오는 것은 ${adj} ${dc}의 사용입니다. 여기서 느껴지는 ${josa(covD,'은','는')} 마치 ${josa(met,'을','를')} 연상시키며, 보는 이의 마음을 깊은 곳으로 이끕니다.</p><p>${colD}. 특히 ${qN[f.maxQ]}에 집중된 표현은 ${josa(qM[f.maxQ],'을','를')} 상징하는 것으로 해석됩니다.</p><p>${tempD} 이 모든 요소가 어우러져 ${josa(mean,'을','를')} 탐구하는 깊이 있는 작품이 완성되었습니다.</p><p>${mv[0]}의 관점에서, ${mv[2]}는 이 사조의 핵심 가치를 이 작품은 완벽하게 구현하고 있습니다.`;
+
+    const emos = f.domColors.slice(0, 3).map(c => (COLOR_DATA[c] || COLOR_DATA['검정']).emotion).join(', ');
+
+    let price;
+    if (f.coverage > 0.4 && f.colorVariety > 3) price = `\u20A9${Math.floor(Math.random() * 99 + 1)}억 ${Math.floor(Math.random() * 9000 + 1000)}만원 (크리스티 경매 추정가)`;
+    else if (f.coverage > 0.15) price = `\u20A9${(Math.floor(Math.random() * 99 + 1) * 100).toLocaleString()}만원 (소더비 추정가)`;
+    else if (f.coverage > 0.04) price = `\u20A9${(Math.floor(Math.random() * 99 + 1) * 10).toLocaleString()}만원 (갤러리 판매가)`;
+    else price = '측정 불가 (이 작품의 가치는 물질을 초월합니다)';
+
+    const exh = pick(EXHIBITIONS).replace('{n}', Math.floor(Math.random() * 15 + 1));
+    const cls = pick(CLOSINGS);
+
+    return `
+        <h2>🖼️ AI 미술 평론</h2>
+        <p class="title-work">\u300C${title}\u300D</p>
+        <p class="info-line"><span class="label">🎭 예술 사조:</span> ${mv[0]} <span style="color:#999">(${mv[1]})</span></p>
+        <p style="font-size:0.88em;color:#888;margin:-4px 0 6px 28px;font-style:italic;">${mv[2]}</p>
+        <p class="stars">${stars} <span style="font-size:0.55em;color:#999">(${rating}/5)</span></p>
+        <div class="interpretation">
+            <p><span class="label">📜 작품 해석</span></p>
+            <p>${interp}</p>
+        </div>
+        <div class="emotion">
+            <p><span class="label">💭 감정 분석</span></p>
+            <p>이 작품에서 읽히는 주요 감정은 <b>${emos}</b>입니다.</p>
+        </div>
+        <p class="info-line"><span class="label">💰 추정 경매가:</span> ${price}</p>
+        <p class="info-line"><span class="label">🏛️ 추천 전시:</span> ${exh}</p>
+        <p class="closing">"${cls}"</p>
+    `;
+}
+
+function emptyResponse() {
+    const t = [
+        [`무(無)`, '극한 미니멀리즘', 'Extreme Minimalism', '\u2605\u2605\u2605\u2605\u2605', 5,
+         '아무것도 그리지 않았다... 이것이야말로 가장 대담한 예술적 선언입니다! 빈 캔버스는 무한한 가능성의 공간이며, 작가는 그 가능성 자체를 작품으로 제시했습니다. 마르셀 뒤샹이 변기를 전시한 이후로 이토록 혁명적인 작품은 없었습니다.',
+         '\u20A9\u221E (값을 매길 수 없음)', '아무것도 그리지 않을 용기. 그것이 진정한 예술입니다.'],
+        [`시작 전의 침묵`, '존재론적 공백주의', 'Ontological Voidism', '\u2605\u2605\u2605\u2605\u2606', 4,
+         '순백의 캔버스가 말합니다... "나를 채워주세요." 하지만 작가는 의도적으로 이 요청을 거부했습니다. 비어있음 자체가 가장 충만한 표현이 될 수 있다는 것을 증명하는 작품입니다.',
+         '감정을 위해 먼저 무언가를 그려주세요 \uD83D\uDE0A', '먼저 낙서를 해보세요! 당신의 내면에는 분명 표현하고 싶은 무언가가 있을 거예요.'],
+    ];
+    const e = pick(t);
+    return `
+        <h2>🖼️ AI 미술 평론</h2>
+        <p class="title-work">\u300C${e[0]}\u300D</p>
+        <p class="info-line"><span class="label">🎭 예술 사조:</span> ${e[1]} <span style="color:#999">(${e[2]})</span></p>
+        <p class="stars">${e[3]} <span style="font-size:0.55em;color:#999">(${e[4]}/5)</span></p>
+        <div class="interpretation"><p>${e[5]}</p></div>
+        <p class="info-line"><span class="label">💰 추정 경매가:</span> ${e[6]}</p>
+        <p class="closing">"${e[7]}"</p>
+    `;
+}
+
+// ============================================================
+//  Analysis Trigger (GPT with Algorithmic Fallback)
+// ============================================================
+async function startAnalysis() {
+    const loading = document.getElementById('loading');
+    const loadingText = document.getElementById('loading-text');
+
+    // Check if canvas has enough content
+    const features = analyzeCanvas();
+
+    if (HAS_API_KEY && features.coverage >= 0.008) {
+        // GPT Mode
+        loadingText.innerHTML = 'GPT가 작품을 감상하고 있습니다<span class="dots"></span>';
+        loading.classList.add('show');
+
+        try {
+            const html = await callGPT();
+            document.getElementById('modal-content').innerHTML = html;
+            loading.classList.remove('show');
+            document.getElementById('modal').classList.add('show');
+            return;
+        } catch (e) {
+            console.error('GPT error:', e);
+            // Show error briefly, then fall back to algorithmic
+            loadingText.innerHTML = 'GPT 연결 실패... 알고리즘 분석으로 전환합니다<span class="dots"></span>';
+            await new Promise(r => setTimeout(r, 1500));
+        }
+    } else {
+        // Algorithmic Mode
+        loadingText.innerHTML = 'AI 평론가가 작품을 감상하고 있습니다<span class="dots"></span>';
+        loading.classList.add('show');
+    }
+
+    // Algorithmic fallback (or primary if no API key)
+    await new Promise(r => setTimeout(r, 1800 + Math.random() * 800));
+    const critique = generateCritique(features);
+    document.getElementById('modal-content').innerHTML = critique;
+    loading.classList.remove('show');
+    document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+}
+
+// ============================================================
+//  Save Result (Combined Doodle + Analysis PNG)
+// ============================================================
+function wrapLines(ctx, text, maxW) {
+    const lines = [];
+    const paras = text.split('\n');
+    for (const para of paras) {
+        if (!para.trim()) { lines.push(''); continue; }
+        let line = '';
+        for (const ch of para) {
+            const test = line + ch;
+            if (ctx.measureText(test).width > maxW && line) {
+                lines.push(line); line = ch;
+            } else line = test;
+        }
+        if (line) lines.push(line);
+    }
+    return lines;
+}
+
+function drawRoundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+}
+
+function saveResult() {
+    const mc = document.getElementById('modal-content');
+    const W = 960, pad = 40, tw = W - pad * 2;
+    const ff = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+    const bodyF = `15px ${ff}`, smallF = `13px ${ff}`, labelF = `bold 14px ${ff}`;
+
+    // Extract data from modal DOM
+    const title = mc.querySelector('.title-work')?.textContent?.trim() || '무제';
+    const infos = [...mc.querySelectorAll('.info-line')];
+    const movementLine = infos[0]?.textContent?.trim() || '';
+    const priceLine = infos.find(el => el.textContent.includes('경매가'))?.textContent?.trim() || '';
+    const exhibLine = infos.find(el => el.textContent.includes('전시'))?.textContent?.trim() || '';
+    const starsText = mc.querySelector('.stars')?.textContent?.trim() || '';
+    const interpEl = mc.querySelector('.interpretation');
+    const interpText = interpEl ? [...interpEl.querySelectorAll('p')].filter(p => !p.querySelector('.label')).map(p => p.textContent.trim()).join('\n\n') : '';
+    const emotionEl = mc.querySelector('.emotion');
+    const emotionText = emotionEl ? [...emotionEl.querySelectorAll('p')].filter(p => !p.querySelector('.label')).map(p => p.textContent.trim()).join(' ') : '';
+    const closing = mc.querySelector('.closing')?.textContent?.trim() || '';
+    const isGPT = !!mc.querySelector('.gpt-tag');
+
+    // Measure text heights
+    const m = document.createElement('canvas').getContext('2d');
+    m.font = bodyF;
+    const interpLines = wrapLines(m, interpText, tw - 40);
+    const emotionLines = wrapLines(m, emotionText, tw - 40);
+    m.font = `italic 15px ${ff}`;
+    const closingLines = wrapLines(m, closing, tw - 60);
+
+    const dW = 840, dH = Math.round(840 * canvas.height / canvas.width);
+
+    // Calculate total height
+    let H = pad;
+    H += 40;                                       // header
+    if (isGPT) H += 22;
+    H += 15 + dH + 20;                             // doodle
+    H += 35;                                        // title
+    H += 22;                                        // movement
+    H += 40;                                        // stars
+    H += 15;
+    H += 30 + interpLines.length * 21 + 16;        // interpretation
+    H += 15;
+    H += 30 + emotionLines.length * 21 + 16;       // emotion
+    H += 15;
+    H += 24 + 24;                                   // price + exhibition
+    H += 15;
+    H += closingLines.length * 21 + 10;            // closing
+    H += pad + 10;
+
+    // Create canvas
+    const oc = document.createElement('canvas');
+    oc.width = W; oc.height = H;
+    const c = oc.getContext('2d');
+
+    // Background
+    const bg = c.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#FFFCF2');
+    bg.addColorStop(1, '#FFF6E6');
+    c.fillStyle = bg;
+    c.fillRect(0, 0, W, H);
+
+    // Gold border
+    c.strokeStyle = '#FFD700';
+    c.lineWidth = 3;
+    c.strokeRect(14, 14, W - 28, H - 28);
+
+    let y = pad;
+
+    // Header
+    c.font = `bold 26px ${ff}`;
+    c.fillStyle = '#FF6B6B';
+    c.textAlign = 'center';
+    c.fillText('🎨 낙서 분석가', W / 2, y + 26);
+    y += 40;
+
+    // GPT tag
+    if (isGPT) {
+        c.fillStyle = '#10B981';
+        drawRoundRect(c, W / 2 - 48, y, 96, 18, 9);
+        c.fill();
+        c.fillStyle = '#fff';
+        c.font = `bold 11px ${ff}`;
+        c.fillText('GPT-4o-mini', W / 2, y + 13);
+        y += 22;
+    }
+
+    y += 15;
+
+    // Doodle with frame
+    const dX = (W - dW) / 2;
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,0.1)';
+    c.shadowBlur = 15;
+    c.fillStyle = '#FFFDF7';
+    c.fillRect(dX - 5, y - 5, dW + 10, dH + 10);
+    c.restore();
+    c.strokeStyle = '#FFE4C9';
+    c.lineWidth = 2;
+    c.strokeRect(dX - 2, y - 2, dW + 4, dH + 4);
+    c.drawImage(canvas, dX, y, dW, dH);
+    y += dH + 20;
+
+    // Title
+    c.font = `italic bold 22px ${ff}`;
+    c.fillStyle = '#8B4513';
+    c.textAlign = 'center';
+    c.fillText(title, W / 2, y + 22);
+    y += 35;
+
+    // Movement
+    c.font = smallF;
+    c.fillStyle = '#888';
+    c.fillText(movementLine, W / 2, y + 13);
+    y += 22;
+
+    // Stars
+    c.font = '22px sans-serif';
+    c.fillStyle = '#333';
+    c.fillText(starsText, W / 2, y + 22);
+    y += 40;
+    y += 15;
+
+    c.textAlign = 'left';
+
+    // Interpretation box
+    const iBoxH = 30 + interpLines.length * 21 + 8;
+    c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.fillRect(pad, y, tw, iBoxH);
+    c.fillStyle = '#FFD700';
+    c.fillRect(pad, y, 4, iBoxH);
+    c.font = labelF; c.fillStyle = '#D4456B';
+    c.fillText('📜 작품 해석', pad + 16, y + 20);
+    y += 30;
+    c.font = bodyF; c.fillStyle = '#444';
+    for (const ln of interpLines) {
+        if (ln === '') { y += 8; continue; }
+        c.fillText(ln, pad + 16, y + 15);
+        y += 21;
+    }
+    y += 16 + 15;
+
+    // Emotion box
+    const eBoxH = 30 + emotionLines.length * 21 + 8;
+    c.fillStyle = 'rgba(255,200,200,0.15)';
+    c.fillRect(pad, y, tw, eBoxH);
+    c.font = labelF; c.fillStyle = '#D4456B';
+    c.fillText('💭 감정 분석', pad + 16, y + 20);
+    y += 30;
+    c.font = bodyF; c.fillStyle = '#444';
+    for (const ln of emotionLines) {
+        c.fillText(ln, pad + 16, y + 15);
+        y += 21;
+    }
+    y += 16 + 15;
+
+    // Price & Exhibition
+    c.font = `14px ${ff}`; c.fillStyle = '#555';
+    c.fillText(priceLine, pad, y + 14); y += 24;
+    c.fillText(exhibLine, pad, y + 14); y += 24;
+    y += 15;
+
+    // Closing
+    c.font = `italic 15px ${ff}`;
+    c.fillStyle = '#999';
+    c.textAlign = 'center';
+    for (const ln of closingLines) {
+        c.fillText(ln, W / 2, y + 15);
+        y += 21;
+    }
+
+    // Watermark
+    c.font = `11px ${ff}`;
+    c.fillStyle = '#ddd';
+    c.fillText('낙서 분석가 · Doodle Analyzer', W / 2, H - 18);
+
+    // Download
+    const a = document.createElement('a');
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    a.download = `낙서분석_${ts}.png`;
+    a.href = oc.toDataURL('image/png');
+    a.click();
+}
+
+// ============================================================
+//  Email Feature
+// ============================================================
+function openEmailModal() {
+    document.getElementById('email-input').value = '';
+    document.getElementById('email-status').className = '';
+    document.getElementById('email-status').style.display = 'none';
+    document.getElementById('send-email-btn').disabled = false;
+    document.getElementById('email-modal').classList.add('show');
+    setTimeout(() => document.getElementById('email-input').focus(), 100);
+}
+
+function closeEmailModal() {
+    document.getElementById('email-modal').classList.remove('show');
+}
+
+function generateResultImage() {
+    const mc = document.getElementById('modal-content');
+    const W = 960, pad = 40, tw = W - pad * 2;
+    const ff = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+    const bodyF = `15px ${ff}`, smallF = `13px ${ff}`, labelF = `bold 14px ${ff}`;
+
+    const title = mc.querySelector('.title-work')?.textContent?.trim() || '무제';
+    const infos = [...mc.querySelectorAll('.info-line')];
+    const movementLine = infos[0]?.textContent?.trim() || '';
+    const priceLine = infos.find(el => el.textContent.includes('경매가'))?.textContent?.trim() || '';
+    const exhibLine = infos.find(el => el.textContent.includes('전시'))?.textContent?.trim() || '';
+    const starsText = mc.querySelector('.stars')?.textContent?.trim() || '';
+    const interpEl = mc.querySelector('.interpretation');
+    const interpText = interpEl ? [...interpEl.querySelectorAll('p')].filter(p => !p.querySelector('.label')).map(p => p.textContent.trim()).join('\n\n') : '';
+    const emotionEl = mc.querySelector('.emotion');
+    const emotionText = emotionEl ? [...emotionEl.querySelectorAll('p')].filter(p => !p.querySelector('.label')).map(p => p.textContent.trim()).join(' ') : '';
+    const closing = mc.querySelector('.closing')?.textContent?.trim() || '';
+    const isGPT = !!mc.querySelector('.gpt-tag');
+
+    const m = document.createElement('canvas').getContext('2d');
+    m.font = bodyF;
+    const interpLines = wrapLines(m, interpText, tw - 40);
+    const emotionLines = wrapLines(m, emotionText, tw - 40);
+    m.font = `italic 15px ${ff}`;
+    const closingLines = wrapLines(m, closing, tw - 60);
+
+    const dW = 840, dH = Math.round(840 * canvas.height / canvas.width);
+
+    let H = pad;
+    H += 40;
+    if (isGPT) H += 22;
+    H += 15 + dH + 20;
+    H += 35 + 22 + 40 + 15;
+    H += 30 + interpLines.length * 21 + 16 + 15;
+    H += 30 + emotionLines.length * 21 + 16 + 15;
+    H += 24 + 24 + 15;
+    H += closingLines.length * 21 + 10;
+    H += pad + 10;
+
+    const oc = document.createElement('canvas');
+    oc.width = W; oc.height = H;
+    const c = oc.getContext('2d');
+
+    const bg = c.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#FFFCF2');
+    bg.addColorStop(1, '#FFF6E6');
+    c.fillStyle = bg;
+    c.fillRect(0, 0, W, H);
+
+    c.strokeStyle = '#FFD700';
+    c.lineWidth = 3;
+    c.strokeRect(14, 14, W - 28, H - 28);
+
+    let y = pad;
+
+    c.font = `bold 26px ${ff}`;
+    c.fillStyle = '#FF6B6B';
+    c.textAlign = 'center';
+    c.fillText('🎨 낙서 분석가', W / 2, y + 26);
+    y += 40;
+
+    if (isGPT) {
+        c.fillStyle = '#10B981';
+        drawRoundRect(c, W / 2 - 48, y, 96, 18, 9);
+        c.fill();
+        c.fillStyle = '#fff';
+        c.font = `bold 11px ${ff}`;
+        c.fillText('GPT-4o-mini', W / 2, y + 13);
+        y += 22;
+    }
+
+    y += 15;
+
+    const dX = (W - dW) / 2;
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,0.1)';
+    c.shadowBlur = 15;
+    c.fillStyle = '#FFFDF7';
+    c.fillRect(dX - 5, y - 5, dW + 10, dH + 10);
+    c.restore();
+    c.strokeStyle = '#FFE4C9';
+    c.lineWidth = 2;
+    c.strokeRect(dX - 2, y - 2, dW + 4, dH + 4);
+    c.drawImage(canvas, dX, y, dW, dH);
+    y += dH + 20;
+
+    c.font = `italic bold 22px ${ff}`;
+    c.fillStyle = '#8B4513';
+    c.textAlign = 'center';
+    c.fillText(title, W / 2, y + 22);
+    y += 35;
+
+    c.font = smallF;
+    c.fillStyle = '#888';
+    c.fillText(movementLine, W / 2, y + 13);
+    y += 22;
+
+    c.font = '22px sans-serif';
+    c.fillStyle = '#333';
+    c.fillText(starsText, W / 2, y + 22);
+    y += 40;
+    y += 15;
+
+    c.textAlign = 'left';
+
+    const iBoxH = 30 + interpLines.length * 21 + 8;
+    c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.fillRect(pad, y, tw, iBoxH);
+    c.fillStyle = '#FFD700';
+    c.fillRect(pad, y, 4, iBoxH);
+    c.font = labelF; c.fillStyle = '#D4456B';
+    c.fillText('📜 작품 해석', pad + 16, y + 20);
+    y += 30;
+    c.font = bodyF; c.fillStyle = '#444';
+    for (const ln of interpLines) {
+        if (ln === '') { y += 8; continue; }
+        c.fillText(ln, pad + 16, y + 15);
+        y += 21;
+    }
+    y += 16 + 15;
+
+    const eBoxH = 30 + emotionLines.length * 21 + 8;
+    c.fillStyle = 'rgba(255,200,200,0.15)';
+    c.fillRect(pad, y, tw, eBoxH);
+    c.font = labelF; c.fillStyle = '#D4456B';
+    c.fillText('💭 감정 분석', pad + 16, y + 20);
+    y += 30;
+    c.font = bodyF; c.fillStyle = '#444';
+    for (const ln of emotionLines) {
+        c.fillText(ln, pad + 16, y + 15);
+        y += 21;
+    }
+    y += 16 + 15;
+
+    c.font = `14px ${ff}`; c.fillStyle = '#555';
+    c.fillText(priceLine, pad, y + 14); y += 24;
+    c.fillText(exhibLine, pad, y + 14); y += 24;
+    y += 15;
+
+    c.font = `italic 15px ${ff}`;
+    c.fillStyle = '#999';
+    c.textAlign = 'center';
+    for (const ln of closingLines) {
+        c.fillText(ln, W / 2, y + 15);
+        y += 21;
+    }
+
+    c.font = `11px ${ff}`;
+    c.fillStyle = '#ddd';
+    c.fillText('낙서 분석가 · Doodle Analyzer', W / 2, H - 18);
+
+    return oc.toDataURL('image/png');
+}
+
+async function sendEmail() {
+    const emailInput = document.getElementById('email-input');
+    const status = document.getElementById('email-status');
+    const sendBtn = document.getElementById('send-email-btn');
+    const email = emailInput.value.trim();
+
+    if (!email || !email.includes('@') || !email.includes('.')) {
+        status.className = 'error';
+        status.style.display = 'block';
+        status.textContent = '❌ 올바른 이메일 주소를 입력해주세요.';
+        return;
+    }
+
+    sendBtn.disabled = true;
+    status.className = 'sending';
+    status.style.display = 'block';
+    status.textContent = '📨 이미지를 생성하고 이메일을 보내는 중...';
+
+    try {
+        const imageData = generateResultImage();
+
+        const response = await fetch(PROXY_URL + '/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, image: imageData })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && !data.error) {
+            status.className = 'success';
+            status.textContent = `✅ ${email}로 전송 완료!`;
+            setTimeout(() => closeEmailModal(), 2000);
+        } else {
+            throw new Error(data.error || '이메일 전송 실패');
+        }
+    } catch (e) {
+        status.className = 'error';
+        status.style.display = 'block';
+        status.textContent = `❌ ${e.message}`;
+        sendBtn.disabled = false;
+    }
+}
+
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeEmailModal(); } });
+
+// Auto-set GPT mode on load if API key is configured
+if (HAS_API_KEY) {
+    const btn = document.getElementById('analyze-btn');
+    btn.innerHTML = '🤖 GPT 분석';
+    btn.classList.add('gpt-mode');
+}
+</script>
+</body>
+</html>
