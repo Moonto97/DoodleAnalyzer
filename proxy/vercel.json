@@ -5,6 +5,9 @@
     },
     "api/email.js": {
       "maxDuration": 30
+    },
+    "api/gallery.js": {
+      "maxDuration": 15
     }
   }
 }

@@ -15,6 +15,8 @@ import json
 import threading
 import smtplib
 import base64
+import time
+import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -81,19 +83,160 @@ SYSTEM_PROMPT = """당신은 세계적으로 유명한 미술 평론가인데, �
 
 
 # ============================================================
+#  Gallery Storage (JSON file with thread lock)
+# ============================================================
+GALLERY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gallery.json')
+GALLERY_MAX = 100  # Max doodles in gallery
+_gallery_lock = threading.Lock()
+
+
+def _load_gallery():
+    """Load gallery data from JSON file (call within lock)."""
+    try:
+        with open(GALLERY_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def _save_gallery(data):
+    """Save gallery data to JSON file (call within lock)."""
+    with open(GALLERY_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False)
+
+
+# ============================================================
 #  OpenAI Proxy Server (secrets loaded from .streamlit/secrets.toml)
 # ============================================================
 class APIHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
-        # Supports all paths: /, /email, etc.
+
+    def do_GET(self):
+        """Handle GET requests (gallery listing)."""
+        try:
+            if self.path == '/gallery':
+                with _gallery_lock:
+                    gallery = _load_gallery()
+                # Sort by likes desc, then by created_at desc
+                gallery.sort(key=lambda x: (x.get('likes', 0), x.get('created_at', 0)), reverse=True)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'gallery': gallery}, ensure_ascii=False).encode('utf-8'))
+                return
+
+            self.send_response(404)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}, ensure_ascii=False).encode('utf-8'))
 
     def do_POST(self):
         try:
+            if self.path == '/gallery/save':
+                content_length = int(self.headers['Content-Length'])
+                body = json.loads(self.rfile.read(content_length))
+                image_data = body.get('image', '')
+                title = body.get('title', '무제')
+
+                if not image_data:
+                    raise ValueError("이미지 데이터가 필요합니다.")
+
+                entry = {
+                    'id': str(uuid.uuid4())[:8],
+                    'image': image_data,
+                    'title': title[:50],  # limit title length
+                    'likes': 0,
+                    'created_at': time.time()
+                }
+
+                with _gallery_lock:
+                    gallery = _load_gallery()
+                    gallery.append(entry)
+                    # Keep only the most recent GALLERY_MAX entries
+                    if len(gallery) > GALLERY_MAX:
+                        # Sort by likes desc to keep popular ones
+                        gallery.sort(key=lambda x: (x.get('likes', 0), x.get('created_at', 0)), reverse=True)
+                        gallery = gallery[:GALLERY_MAX]
+                    _save_gallery(gallery)
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': True, 'id': entry['id']}, ensure_ascii=False).encode('utf-8'))
+                return
+
+            if self.path == '/gallery/like':
+                content_length = int(self.headers['Content-Length'])
+                body = json.loads(self.rfile.read(content_length))
+                doodle_id = body.get('id', '')
+
+                if not doodle_id:
+                    raise ValueError("낙서 ID가 필요합니다.")
+
+                with _gallery_lock:
+                    gallery = _load_gallery()
+                    found = False
+                    for item in gallery:
+                        if item['id'] == doodle_id:
+                            item['likes'] = item.get('likes', 0) + 1
+                            found = True
+                            likes = item['likes']
+                            break
+                    if found:
+                        _save_gallery(gallery)
+
+                if not found:
+                    raise ValueError("해당 낙서를 찾을 수 없습니다.")
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': True, 'likes': likes}, ensure_ascii=False).encode('utf-8'))
+                return
+
+            if self.path == '/gallery/unlike':
+                content_length = int(self.headers['Content-Length'])
+                body = json.loads(self.rfile.read(content_length))
+                doodle_id = body.get('id', '')
+
+                if not doodle_id:
+                    raise ValueError("낙서 ID가 필요합니다.")
+
+                with _gallery_lock:
+                    gallery = _load_gallery()
+                    found = False
+                    for item in gallery:
+                        if item['id'] == doodle_id:
+                            item['likes'] = max(0, item.get('likes', 0) - 1)
+                            found = True
+                            likes = item['likes']
+                            break
+                    if found:
+                        _save_gallery(gallery)
+
+                if not found:
+                    raise ValueError("해당 낙서를 찾을 수 없습니다.")
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'success': True, 'likes': likes}, ensure_ascii=False).encode('utf-8'))
+                return
+
             if self.path == '/email':
                 # Email sending handler
                 content_length = int(self.headers['Content-Length'])
@@ -247,4 +390,4 @@ html_content = html_content.replace('__PROXY_PORT__', str(PROXY_PORT))
 html_content = html_content.replace('__HAS_API_KEY__', 'true' if (API_KEY or PROXY_API_URL) else 'false')
 html_content = html_content.replace('__PROXY_API_URL__', PROXY_API_URL.rstrip('/'))
 
-components.html(html_content, height=860, scrolling=False)
+components.html(html_content, height=900, scrolling=False)

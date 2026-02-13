@@ -8,9 +8,94 @@
 body{
     font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
     background:linear-gradient(135deg,#FFF8F0 0%,#FFF0E6 50%,#F8F0FF 100%);
-    display:flex;flex-direction:column;align-items:center;
+    display:flex;flex-direction:row;
     height:100vh;overflow:hidden;user-select:none;
     -webkit-user-select:none;
+}
+
+/* ============================================================
+   Gallery Sidebar
+   ============================================================ */
+#gallery-panel{
+    width:280px;min-width:280px;height:100vh;
+    background:linear-gradient(180deg,#FFFCF5 0%,#FFF6EC 50%,#FBF2FF 100%);
+    border-right:2px solid #FFE4C9;
+    display:flex;flex-direction:column;overflow:hidden;
+}
+#gallery-header{
+    padding:14px 16px 10px;text-align:center;
+    border-bottom:1px solid #FFE4C9;
+    background:rgba(255,255,255,0.6);
+    flex-shrink:0;
+}
+#gallery-header h2{font-size:1.15em;color:#FF6B6B;margin-bottom:2px;letter-spacing:-0.3px;}
+#gallery-header p{font-size:0.75em;color:#bbb;}
+#gallery-list{
+    flex:1;overflow-y:auto;padding:10px;
+    scrollbar-width:thin;scrollbar-color:#FFD700 transparent;
+}
+#gallery-list::-webkit-scrollbar{width:5px;}
+#gallery-list::-webkit-scrollbar-track{background:transparent;}
+#gallery-list::-webkit-scrollbar-thumb{background:#FFD700;border-radius:3px;}
+
+#gallery-empty{
+    text-align:center;color:#ccc;font-size:0.85em;
+    line-height:1.8;padding:40px 16px;
+}
+
+.gallery-item{
+    background:white;border-radius:12px;padding:10px;
+    margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04);
+    transition:transform 0.2s,box-shadow 0.2s;
+    cursor:default;
+}
+.gallery-item:hover{
+    transform:translateY(-2px);
+    box-shadow:0 4px 14px rgba(0,0,0,0.08);
+}
+.gallery-item-header{
+    display:flex;align-items:center;gap:6px;margin-bottom:8px;
+}
+.rank-badge{
+    width:22px;height:22px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:0.7em;font-weight:bold;color:white;flex-shrink:0;
+}
+.rank-1{background:linear-gradient(135deg,#FFD700,#FFA000);}
+.rank-2{background:linear-gradient(135deg,#C0C0C0,#9E9E9E);}
+.rank-3{background:linear-gradient(135deg,#CD7F32,#A0522D);}
+.rank-n{background:#ddd;color:#888;}
+.gallery-item-title{
+    flex:1;font-size:0.8em;color:#555;font-weight:500;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.gallery-thumb{
+    width:100%;border-radius:8px;
+    aspect-ratio:920/540;object-fit:cover;
+    background:#FFFDF7;border:1px solid #f0ebe0;
+}
+.gallery-item-footer{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:8px;
+}
+.gallery-time{font-size:0.68em;color:#ccc;}
+.like-btn{
+    display:flex;align-items:center;gap:4px;
+    background:none;border:1.5px solid #FFE0E0;border-radius:16px;
+    padding:3px 10px;cursor:pointer;font-size:0.8em;color:#FF6B6B;
+    transition:all 0.2s;outline:none;
+}
+.like-btn:hover{background:#FFF0F0;border-color:#FF6B6B;}
+.like-btn.liked{background:#FF6B6B;color:white;border-color:#FF6B6B;}
+.like-btn .like-icon{font-size:1em;transition:transform 0.3s;}
+.like-btn:active .like-icon{transform:scale(1.3);}
+
+/* ============================================================
+   Main Content
+   ============================================================ */
+#main-content{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    overflow:hidden;min-width:0;
 }
 header{text-align:center;padding:12px 0 6px;}
 header h1{font-size:1.6em;color:#FF6B6B;margin-bottom:2px;letter-spacing:-0.5px;}
@@ -19,7 +104,7 @@ header p{font-size:0.85em;color:#aaa;font-style:italic;}
 #canvas-wrap{
     position:relative;margin:8px auto;border-radius:14px;overflow:hidden;
     box-shadow:0 4px 25px rgba(0,0,0,0.08);border:2px solid #FFE4C9;
-    width:min(920px,calc(100vw - 30px));
+    width:min(780px,calc(100% - 30px));
     background:#FFFDF7;
 }
 canvas{display:block;cursor:crosshair;width:100%;height:auto;}
@@ -98,18 +183,26 @@ canvas{display:block;cursor:crosshair;width:100%;height:auto;}
 #modal-card .info-line{margin:6px 0;font-size:0.95em;}
 #modal-card .gpt-tag{display:inline-block;font-size:0.7em;background:#10B981;color:white;padding:2px 8px;border-radius:8px;vertical-align:middle;}
 
-.modal-btns{display:flex;gap:10px;justify-content:center;margin-top:18px;}
+.modal-btns{display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
 #save-btn{
-    padding:10px 28px;border:none;border-radius:22px;
+    padding:10px 22px;border:none;border-radius:22px;
     background:linear-gradient(135deg,#10B981,#059669);
-    color:white;font-size:1em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+    color:white;font-size:0.9em;cursor:pointer;font-weight:bold;transition:all 0.2s;
 }
 #save-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(16,185,129,0.3);}
 
+#share-btn{
+    padding:10px 22px;border:none;border-radius:22px;
+    background:linear-gradient(135deg,#F59E0B,#D97706);
+    color:white;font-size:0.9em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+}
+#share-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(245,158,11,0.3);}
+#share-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
 #email-btn{
-    padding:10px 28px;border:none;border-radius:22px;
+    padding:10px 22px;border:none;border-radius:22px;
     background:linear-gradient(135deg,#3B82F6,#2563EB);
-    color:white;font-size:1em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+    color:white;font-size:0.9em;cursor:pointer;font-weight:bold;transition:all 0.2s;
 }
 #email-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(59,130,246,0.3);}
 
@@ -142,11 +235,43 @@ canvas{display:block;cursor:crosshair;width:100%;height:auto;}
 #cancel-email-btn:hover{background:#e5e5e5;}
 
 #close-btn{
-    padding:10px 28px;border:none;border-radius:22px;
+    padding:10px 22px;border:none;border-radius:22px;
     background:linear-gradient(135deg,#FF6B6B,#FF8E53);
-    color:white;font-size:1em;cursor:pointer;font-weight:bold;transition:all 0.2s;
+    color:white;font-size:0.9em;cursor:pointer;font-weight:bold;transition:all 0.2s;
 }
 #close-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(255,107,107,0.3);}
+
+/* Doodle Detail Modal */
+#detail-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:102;}
+#detail-modal.show{display:flex;align-items:center;justify-content:center;}
+#detail-modal-bg{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);backdrop-filter:blur(5px);}
+#detail-card{
+    position:relative;background:white;border-radius:18px;padding:24px;
+    max-width:500px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,0.15);
+    animation:slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+    text-align:center;
+}
+#detail-card img{
+    width:100%;border-radius:12px;margin-bottom:14px;
+    border:1px solid #f0ebe0;
+}
+#detail-card h3{color:#8B4513;font-size:1.1em;margin-bottom:10px;font-style:italic;}
+#detail-card .detail-likes{font-size:1em;color:#FF6B6B;margin-bottom:14px;}
+#detail-close-btn{
+    padding:8px 24px;border:none;border-radius:18px;
+    background:linear-gradient(135deg,#FF6B6B,#FF8E53);
+    color:white;font-size:0.9em;cursor:pointer;font-weight:bold;
+}
+
+/* Share success toast */
+#share-toast{
+    position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:#10B981;color:white;padding:12px 24px;border-radius:12px;
+    font-size:0.9em;font-weight:bold;box-shadow:0 4px 20px rgba(16,185,129,0.3);
+    z-index:200;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+    pointer-events:none;
+}
+#share-toast.show{transform:translateX(-50%) translateY(0);}
 
 /* Loading */
 #loading{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:99;align-items:center;justify-content:center;flex-direction:column;backdrop-filter:blur(3px);}
@@ -161,60 +286,94 @@ canvas{display:block;cursor:crosshair;width:100%;height:auto;}
 #modal-card::-webkit-scrollbar{width:6px;}
 #modal-card::-webkit-scrollbar-track{background:transparent;}
 #modal-card::-webkit-scrollbar-thumb{background:#FFD700;border-radius:3px;}
+
+/* Heartbeat animation */
+@keyframes heartbeat{
+    0%{transform:scale(1);}
+    25%{transform:scale(1.3);}
+    50%{transform:scale(1);}
+    75%{transform:scale(1.15);}
+    100%{transform:scale(1);}
+}
+.like-btn.just-liked .like-icon{animation:heartbeat 0.5s ease;}
 </style>
 </head>
 <body>
 
-<header>
-    <h1>🎨 낙서 분석가</h1>
-    <p>- 모든 낙서는 무의식을 투영한다 -</p>
-</header>
-
-<div id="canvas-wrap">
-    <canvas id="canvas" width="920" height="540"></canvas>
-    <div id="hint">
-        클릭하고 드래그해서<br>자유롭게 그려보세요!<br><br>
-        <span>생각하지 말고, 그냥 그리세요! 🎨</span>
+<!-- Gallery Sidebar -->
+<div id="gallery-panel">
+    <div id="gallery-header">
+        <h2>🏆 낙서 랭킹</h2>
+        <p>추천순 · 총 <span id="gallery-count">0</span>개</p>
+    </div>
+    <div id="gallery-list">
+        <div id="gallery-empty">
+            아직 공유된 낙서가 없어요!<br><br>
+            낙서를 그리고 AI 분석 후<br>
+            갤러리에 공유해보세요 🎨
+        </div>
     </div>
 </div>
 
-<div id="toolbar">
-    <button class="color-btn active" style="background:#E63946" onclick="setColor('#E63946',this)" title="빨강"></button>
-    <button class="color-btn" style="background:#F4845F" onclick="setColor('#F4845F',this)" title="코랄"></button>
-    <button class="color-btn" style="background:#F7B801" onclick="setColor('#F7B801',this)" title="노랑"></button>
-    <button class="color-btn" style="background:#7FB800" onclick="setColor('#7FB800',this)" title="초록"></button>
-    <button class="color-btn" style="background:#1D9A6C" onclick="setColor('#1D9A6C',this)" title="청록"></button>
-    <button class="color-btn" style="background:#2563EB" onclick="setColor('#2563EB',this)" title="파랑"></button>
-    <button class="color-btn" style="background:#7C3AED" onclick="setColor('#7C3AED',this)" title="보라"></button>
-    <button class="color-btn" style="background:#EC4899" onclick="setColor('#EC4899',this)" title="분홍"></button>
-    <button class="color-btn" style="background:#374151" onclick="setColor('#374151',this)" title="검정"></button>
-    <button class="color-btn" style="background:#FFFFFF;border:2px solid #ddd" onclick="setColor('#FFFFFF',this)" title="하양"></button>
+<!-- Main Content -->
+<div id="main-content">
+    <header>
+        <h1>🎨 낙서 분석가</h1>
+        <p>- 모든 낙서는 무의식을 투영한다 -</p>
+    </header>
 
-    <div class="tool-sep"></div>
-    <span class="size-label">가늘게</span>
-    <input type="range" id="size-slider" min="1" max="15" value="4">
-    <span class="size-label">굵게</span>
+    <div id="canvas-wrap">
+        <canvas id="canvas" width="780" height="460"></canvas>
+        <div id="hint">
+            클릭하고 드래그해서<br>자유롭게 그려보세요!<br><br>
+            <span>생각하지 말고, 그냥 그리세요! 🎨</span>
+        </div>
+    </div>
 
-    <div class="tool-sep"></div>
-    <button class="tool-btn" onclick="doSplatter()" title="물감 튀기기">💦 물감</button>
-    <button class="tool-btn" onclick="doShapes()" title="도형 뿌리기">🔷 도형</button>
-    <button class="tool-btn" onclick="doSparkle()" title="반짝이 뿌리기">✨ 반짝이</button>
+    <div id="toolbar">
+        <button class="color-btn active" style="background:#E63946" onclick="setColor('#E63946',this)" title="빨강"></button>
+        <button class="color-btn" style="background:#F4845F" onclick="setColor('#F4845F',this)" title="코랄"></button>
+        <button class="color-btn" style="background:#F7B801" onclick="setColor('#F7B801',this)" title="노랑"></button>
+        <button class="color-btn" style="background:#7FB800" onclick="setColor('#7FB800',this)" title="초록"></button>
+        <button class="color-btn" style="background:#1D9A6C" onclick="setColor('#1D9A6C',this)" title="청록"></button>
+        <button class="color-btn" style="background:#2563EB" onclick="setColor('#2563EB',this)" title="파랑"></button>
+        <button class="color-btn" style="background:#7C3AED" onclick="setColor('#7C3AED',this)" title="보라"></button>
+        <button class="color-btn" style="background:#EC4899" onclick="setColor('#EC4899',this)" title="분홍"></button>
+        <button class="color-btn" style="background:#374151" onclick="setColor('#374151',this)" title="검정"></button>
+        <button class="color-btn" style="background:#FFFFFF;border:2px solid #ddd" onclick="setColor('#FFFFFF',this)" title="하양"></button>
 
-    <div class="tool-sep"></div>
-    <button class="tool-btn" id="analyze-btn" onclick="startAnalysis()">🔍 AI 분석</button>
-    <button class="tool-btn" onclick="clearCanvas()" title="초기화">🗑️</button>
+        <div class="tool-sep"></div>
+        <span class="size-label">가늘게</span>
+        <input type="range" id="size-slider" min="1" max="15" value="4">
+        <span class="size-label">굵게</span>
+
+        <div class="tool-sep"></div>
+        <button class="tool-btn" onclick="doSplatter()" title="물감 튀기기">💦 물감</button>
+        <button class="tool-btn" onclick="doShapes()" title="도형 뿌리기">🔷 도형</button>
+        <button class="tool-btn" onclick="doSparkle()" title="반짝이 뿌리기">✨ 반짝이</button>
+
+        <div class="tool-sep"></div>
+        <button class="tool-btn" id="analyze-btn" onclick="startAnalysis()">🔍 AI 분석</button>
+        <button class="tool-btn" onclick="clearCanvas()" title="초기화">🗑️</button>
+    </div>
 </div>
 
+<!-- Share Toast -->
+<div id="share-toast">🌟 갤러리에 공유되었습니다!</div>
+
+<!-- Loading -->
 <div id="loading">
     <div class="spinner">🎨</div>
     <p id="loading-text">AI 평론가가 작품을 감상하고 있습니다<span class="dots"></span></p>
 </div>
 
+<!-- Analysis Modal -->
 <div id="modal">
     <div id="modal-bg" onclick="closeModal()"></div>
     <div id="modal-card">
         <div id="modal-content"></div>
         <div class="modal-btns">
+            <button id="share-btn" onclick="shareToGallery()">🌟 갤러리 공유</button>
             <button id="save-btn" onclick="saveResult()">💾 저장하기</button>
             <button id="email-btn" onclick="openEmailModal()">📧 이메일</button>
             <button id="close-btn" onclick="closeModal()">닫기</button>
@@ -222,6 +381,7 @@ canvas{display:block;cursor:crosshair;width:100%;height:auto;}
     </div>
 </div>
 
+<!-- Email Modal -->
 <div id="email-modal">
     <div id="email-modal-bg" onclick="closeEmailModal()"></div>
     <div id="email-card">
@@ -236,6 +396,17 @@ canvas{display:block;cursor:crosshair;width:100%;height:auto;}
     </div>
 </div>
 
+<!-- Doodle Detail Modal -->
+<div id="detail-modal">
+    <div id="detail-modal-bg" onclick="closeDetailModal()"></div>
+    <div id="detail-card">
+        <img id="detail-img" src="" alt="낙서">
+        <h3 id="detail-title"></h3>
+        <div class="detail-likes" id="detail-likes"></div>
+        <button id="detail-close-btn" onclick="closeDetailModal()">닫기</button>
+    </div>
+</div>
+
 <script>
 // ============================================================
 //  Proxy Configuration (injected by app.py)
@@ -243,6 +414,12 @@ canvas{display:block;cursor:crosshair;width:100%;height:auto;}
 const PROXY_URL = 'http://localhost:__PROXY_PORT__';
 const HAS_API_KEY = __HAS_API_KEY__;
 const PROXY_API_URL = '__PROXY_API_URL__';
+
+// ============================================================
+//  Gallery State
+// ============================================================
+let galleryData = [];
+let likedDoodles = JSON.parse(localStorage.getItem('doodle_liked') || '{}');
 
 // ============================================================
 //  Oil Painting Engine
@@ -463,7 +640,6 @@ function doSparkle() {
 //  GPT API Integration
 // ============================================================
 function parseGPTResponse(text) {
-    // Remove markdown code fences if present
     text = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     return JSON.parse(text);
 }
@@ -499,11 +675,9 @@ function formatGPTCritique(c) {
 }
 
 async function callGPT() {
-    // Capture canvas as JPEG (smaller than PNG, reduces API cost)
     const imageData = canvas.toDataURL('image/jpeg', 0.7);
     const bodyPayload = JSON.stringify({ image: imageData });
 
-    // 1) Try Vercel proxy first (works on Streamlit Cloud deployment)
     if (PROXY_API_URL) {
         try {
             const response = await fetch(PROXY_API_URL + '/api/analyze', {
@@ -511,7 +685,6 @@ async function callGPT() {
                 headers: { 'Content-Type': 'application/json' },
                 body: bodyPayload
             });
-
             if (response.ok) {
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
@@ -522,22 +695,18 @@ async function callGPT() {
             throw new Error(err.error || 'Vercel proxy 요청 실패');
         } catch (vercelError) {
             console.log('Vercel proxy failed:', vercelError.message);
-            // Fall through to localhost proxy
         }
     }
 
-    // 2) Try localhost proxy (works on local development)
     const response = await fetch(PROXY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: bodyPayload
     });
-
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.error || 'API 요청 실패');
     }
-
     const data = await response.json();
     if (data.error) throw new Error(data.error);
     const critique = parseGPTResponse(data.critique);
@@ -611,7 +780,6 @@ const EXHIBITIONS = [
 
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-// Korean particle helper: picks correct particle based on last syllable's coda
 function josa(word, cons, vowel) {
     const c = word.charCodeAt(word.length - 1);
     if (c >= 0xAC00 && c <= 0xD7A3) return word + ((c - 0xAC00) % 28 !== 0 ? cons : vowel);
@@ -786,43 +954,265 @@ function emptyResponse() {
 async function startAnalysis() {
     const loading = document.getElementById('loading');
     const loadingText = document.getElementById('loading-text');
-
-    // Check if canvas has enough content
     const features = analyzeCanvas();
 
     if (HAS_API_KEY && features.coverage >= 0.008) {
-        // GPT Mode
         loadingText.innerHTML = 'GPT가 작품을 감상하고 있습니다<span class="dots"></span>';
         loading.classList.add('show');
-
         try {
             const html = await callGPT();
             document.getElementById('modal-content').innerHTML = html;
             loading.classList.remove('show');
+            document.getElementById('share-btn').disabled = false;
+            document.getElementById('share-btn').textContent = '🌟 갤러리 공유';
             document.getElementById('modal').classList.add('show');
             return;
         } catch (e) {
             console.error('GPT error:', e);
-            // Show error briefly, then fall back to algorithmic
             loadingText.innerHTML = 'GPT 연결 실패... 알고리즘 분석으로 전환합니다<span class="dots"></span>';
             await new Promise(r => setTimeout(r, 1500));
         }
     } else {
-        // Algorithmic Mode
         loadingText.innerHTML = 'AI 평론가가 작품을 감상하고 있습니다<span class="dots"></span>';
         loading.classList.add('show');
     }
 
-    // Algorithmic fallback (or primary if no API key)
     await new Promise(r => setTimeout(r, 1800 + Math.random() * 800));
     const critique = generateCritique(features);
     document.getElementById('modal-content').innerHTML = critique;
     loading.classList.remove('show');
+    document.getElementById('share-btn').disabled = false;
+    document.getElementById('share-btn').textContent = '🌟 갤러리 공유';
     document.getElementById('modal').classList.add('show');
 }
 
 function closeModal() {
     document.getElementById('modal').classList.remove('show');
+}
+
+// ============================================================
+//  Gallery Functions
+// ============================================================
+function generateThumbnail() {
+    const tc = document.createElement('canvas');
+    tc.width = 240;
+    tc.height = Math.round(240 * canvas.height / canvas.width);
+    const tctx = tc.getContext('2d');
+    tctx.drawImage(canvas, 0, 0, tc.width, tc.height);
+    return tc.toDataURL('image/jpeg', 0.65);
+}
+
+function getAnalysisTitle() {
+    const mc = document.getElementById('modal-content');
+    const titleEl = mc.querySelector('.title-work');
+    if (titleEl) {
+        let t = titleEl.textContent.trim();
+        t = t.replace(/[「」『』]/g, '').trim();
+        return t || '무제';
+    }
+    return '무제';
+}
+
+async function galleryFetch(path, options) {
+    // Try Vercel proxy first (single /api/gallery endpoint with action)
+    if (PROXY_API_URL) {
+        try {
+            let vercelOpts = { ...options };
+            if (path === '/gallery' && (!options || options.method === 'GET')) {
+                vercelOpts = { method: 'GET' };
+            } else if (path === '/gallery/save') {
+                const body = JSON.parse(options.body);
+                vercelOpts = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'save', ...body })
+                };
+            } else if (path === '/gallery/like') {
+                const body = JSON.parse(options.body);
+                vercelOpts = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'like', ...body })
+                };
+            } else if (path === '/gallery/unlike') {
+                const body = JSON.parse(options.body);
+                vercelOpts = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'unlike', ...body })
+                };
+            }
+            const resp = await fetch(PROXY_API_URL + '/api/gallery', vercelOpts);
+            if (resp.ok) return await resp.json();
+        } catch (e) {
+            console.log('Vercel gallery failed:', e.message);
+        }
+    }
+    // Fall back to local proxy (separate path endpoints)
+    const resp = await fetch(PROXY_URL + path, options);
+    return await resp.json();
+}
+
+async function loadGallery() {
+    try {
+        const data = await galleryFetch('/gallery', { method: 'GET' });
+        galleryData = data.gallery || [];
+        renderGallery();
+    } catch (e) {
+        console.log('Gallery load failed:', e.message);
+    }
+}
+
+function renderGallery() {
+    const list = document.getElementById('gallery-list');
+    const empty = document.getElementById('gallery-empty');
+    const count = document.getElementById('gallery-count');
+
+    count.textContent = galleryData.length;
+
+    if (galleryData.length === 0) {
+        empty.style.display = 'block';
+        // Remove all gallery items but keep empty div
+        list.querySelectorAll('.gallery-item').forEach(el => el.remove());
+        return;
+    }
+
+    empty.style.display = 'none';
+
+    // Build HTML
+    let html = '';
+    galleryData.forEach((item, idx) => {
+        const rank = idx + 1;
+        let rankClass = 'rank-n';
+        if (rank === 1) rankClass = 'rank-1';
+        else if (rank === 2) rankClass = 'rank-2';
+        else if (rank === 3) rankClass = 'rank-3';
+
+        const isLiked = !!likedDoodles[item.id];
+        const likedClass = isLiked ? ' liked' : '';
+
+        const timeAgo = getTimeAgo(item.created_at);
+
+        html += `
+            <div class="gallery-item" data-id="${item.id}">
+                <div class="gallery-item-header">
+                    <div class="rank-badge ${rankClass}">${rank}</div>
+                    <div class="gallery-item-title" title="${item.title}">${item.title}</div>
+                </div>
+                <img class="gallery-thumb" src="${item.image}" alt="${item.title}" onclick="openDetail('${item.id}')">
+                <div class="gallery-item-footer">
+                    <span class="gallery-time">${timeAgo}</span>
+                    <button class="like-btn${likedClass}" onclick="toggleLike('${item.id}', this)" title="추천">
+                        <span class="like-icon">${isLiked ? '❤️' : '🤍'}</span>
+                        <span class="like-count">${item.likes || 0}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    // Replace content (keep empty div)
+    list.querySelectorAll('.gallery-item').forEach(el => el.remove());
+    list.insertAdjacentHTML('beforeend', html);
+}
+
+function getTimeAgo(timestamp) {
+    const now = Date.now() / 1000;
+    const diff = now - timestamp;
+    if (diff < 60) return '방금 전';
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}일 전`;
+    return new Date(timestamp * 1000).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+async function shareToGallery() {
+    const btn = document.getElementById('share-btn');
+    btn.disabled = true;
+    btn.textContent = '공유 중...';
+
+    try {
+        const thumbnail = generateThumbnail();
+        const title = getAnalysisTitle();
+
+        const data = await galleryFetch('/gallery/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: thumbnail, title: title })
+        });
+
+        if (data.success) {
+            btn.textContent = '✅ 공유 완료!';
+            showToast('🌟 갤러리에 공유되었습니다!');
+            await loadGallery();
+        } else {
+            throw new Error(data.error || '공유 실패');
+        }
+    } catch (e) {
+        btn.textContent = '❌ 실패';
+        console.error('Share failed:', e);
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = '🌟 갤러리 공유';
+        }, 2000);
+    }
+}
+
+async function toggleLike(id, btn) {
+    const isLiked = !!likedDoodles[id];
+    const endpoint = isLiked ? '/gallery/unlike' : '/gallery/like';
+
+    try {
+        const data = await galleryFetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
+
+        if (data.success) {
+            if (isLiked) {
+                delete likedDoodles[id];
+                btn.classList.remove('liked');
+                btn.querySelector('.like-icon').textContent = '🤍';
+            } else {
+                likedDoodles[id] = true;
+                btn.classList.add('liked');
+                btn.classList.add('just-liked');
+                btn.querySelector('.like-icon').textContent = '❤️';
+                setTimeout(() => btn.classList.remove('just-liked'), 500);
+            }
+            btn.querySelector('.like-count').textContent = data.likes;
+            localStorage.setItem('doodle_liked', JSON.stringify(likedDoodles));
+
+            // Update local data and re-sort
+            const item = galleryData.find(g => g.id === id);
+            if (item) item.likes = data.likes;
+            galleryData.sort((a, b) => (b.likes || 0) - (a.likes || 0) || (b.created_at || 0) - (a.created_at || 0));
+            renderGallery();
+        }
+    } catch (e) {
+        console.error('Like failed:', e);
+    }
+}
+
+function openDetail(id) {
+    const item = galleryData.find(g => g.id === id);
+    if (!item) return;
+    document.getElementById('detail-img').src = item.image;
+    document.getElementById('detail-title').textContent = `「${item.title}」`;
+    document.getElementById('detail-likes').textContent = `❤️ ${item.likes || 0}개의 추천`;
+    document.getElementById('detail-modal').classList.add('show');
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('show');
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('share-toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
 // ============================================================
@@ -860,7 +1250,6 @@ function saveResult() {
     const ff = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
     const bodyF = `15px ${ff}`, smallF = `13px ${ff}`, labelF = `bold 14px ${ff}`;
 
-    // Extract data from modal DOM
     const title = mc.querySelector('.title-work')?.textContent?.trim() || '무제';
     const infos = [...mc.querySelectorAll('.info-line')];
     const movementLine = infos[0]?.textContent?.trim() || '';
@@ -874,7 +1263,6 @@ function saveResult() {
     const closing = mc.querySelector('.closing')?.textContent?.trim() || '';
     const isGPT = !!mc.querySelector('.gpt-tag');
 
-    // Measure text heights
     const m = document.createElement('canvas').getContext('2d');
     m.font = bodyF;
     const interpLines = wrapLines(m, interpText, tw - 40);
@@ -884,51 +1272,45 @@ function saveResult() {
 
     const dW = 840, dH = Math.round(840 * canvas.height / canvas.width);
 
-    // Calculate total height
     let H = pad;
-    H += 40;                                       // header
+    H += 40;
     if (isGPT) H += 22;
-    H += 15 + dH + 20;                             // doodle
-    H += 35;                                        // title
-    H += 22;                                        // movement
-    H += 40;                                        // stars
+    H += 15 + dH + 20;
+    H += 35;
+    H += 22;
+    H += 40;
     H += 15;
-    H += 30 + interpLines.length * 21 + 16;        // interpretation
+    H += 30 + interpLines.length * 21 + 16;
     H += 15;
-    H += 30 + emotionLines.length * 21 + 16;       // emotion
+    H += 30 + emotionLines.length * 21 + 16;
     H += 15;
-    H += 24 + 24;                                   // price + exhibition
+    H += 24 + 24;
     H += 15;
-    H += closingLines.length * 21 + 10;            // closing
+    H += closingLines.length * 21 + 10;
     H += pad + 10;
 
-    // Create canvas
     const oc = document.createElement('canvas');
     oc.width = W; oc.height = H;
     const c = oc.getContext('2d');
 
-    // Background
     const bg = c.createLinearGradient(0, 0, W, H);
     bg.addColorStop(0, '#FFFCF2');
     bg.addColorStop(1, '#FFF6E6');
     c.fillStyle = bg;
     c.fillRect(0, 0, W, H);
 
-    // Gold border
     c.strokeStyle = '#FFD700';
     c.lineWidth = 3;
     c.strokeRect(14, 14, W - 28, H - 28);
 
     let y = pad;
 
-    // Header
     c.font = `bold 26px ${ff}`;
     c.fillStyle = '#FF6B6B';
     c.textAlign = 'center';
     c.fillText('🎨 낙서 분석가', W / 2, y + 26);
     y += 40;
 
-    // GPT tag
     if (isGPT) {
         c.fillStyle = '#10B981';
         drawRoundRect(c, W / 2 - 48, y, 96, 18, 9);
@@ -941,7 +1323,6 @@ function saveResult() {
 
     y += 15;
 
-    // Doodle with frame
     const dX = (W - dW) / 2;
     c.save();
     c.shadowColor = 'rgba(0,0,0,0.1)';
@@ -955,20 +1336,17 @@ function saveResult() {
     c.drawImage(canvas, dX, y, dW, dH);
     y += dH + 20;
 
-    // Title
     c.font = `italic bold 22px ${ff}`;
     c.fillStyle = '#8B4513';
     c.textAlign = 'center';
     c.fillText(title, W / 2, y + 22);
     y += 35;
 
-    // Movement
     c.font = smallF;
     c.fillStyle = '#888';
     c.fillText(movementLine, W / 2, y + 13);
     y += 22;
 
-    // Stars
     c.font = '22px sans-serif';
     c.fillStyle = '#333';
     c.fillText(starsText, W / 2, y + 22);
@@ -977,7 +1355,6 @@ function saveResult() {
 
     c.textAlign = 'left';
 
-    // Interpretation box
     const iBoxH = 30 + interpLines.length * 21 + 8;
     c.fillStyle = 'rgba(255,255,255,0.6)';
     c.fillRect(pad, y, tw, iBoxH);
@@ -994,7 +1371,6 @@ function saveResult() {
     }
     y += 16 + 15;
 
-    // Emotion box
     const eBoxH = 30 + emotionLines.length * 21 + 8;
     c.fillStyle = 'rgba(255,200,200,0.15)';
     c.fillRect(pad, y, tw, eBoxH);
@@ -1008,13 +1384,11 @@ function saveResult() {
     }
     y += 16 + 15;
 
-    // Price & Exhibition
     c.font = `14px ${ff}`; c.fillStyle = '#555';
     c.fillText(priceLine, pad, y + 14); y += 24;
     c.fillText(exhibLine, pad, y + 14); y += 24;
     y += 15;
 
-    // Closing
     c.font = `italic 15px ${ff}`;
     c.fillStyle = '#999';
     c.textAlign = 'center';
@@ -1023,12 +1397,10 @@ function saveResult() {
         y += 21;
     }
 
-    // Watermark
     c.font = `11px ${ff}`;
     c.fillStyle = '#ddd';
     c.fillText('낙서 분석가 · Doodle Analyzer', W / 2, H - 18);
 
-    // Download
     const a = document.createElement('a');
     const now = new Date();
     const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
@@ -1229,7 +1601,6 @@ async function sendEmail() {
         const imageData = generateResultImage();
         const bodyPayload = JSON.stringify({ email: email, image: imageData });
 
-        // 1) Vercel 프록시 시도
         if (PROXY_API_URL) {
             try {
                 const response = await fetch(PROXY_API_URL + '/api/email', {
@@ -1250,7 +1621,6 @@ async function sendEmail() {
             }
         }
 
-        // 2) localhost 프록시 폴백 (로컬 개발용)
         const response = await fetch(PROXY_URL + '/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1272,7 +1642,9 @@ async function sendEmail() {
     }
 }
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeEmailModal(); } });
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeModal(); closeEmailModal(); closeDetailModal(); }
+});
 
 // Auto-set GPT mode on load if API key is configured
 if (HAS_API_KEY) {
@@ -1280,6 +1652,11 @@ if (HAS_API_KEY) {
     btn.innerHTML = '🤖 GPT 분석';
     btn.classList.add('gpt-mode');
 }
+
+// Load gallery on page load
+loadGallery();
+// Auto-refresh gallery every 30 seconds
+setInterval(loadGallery, 30000);
 </script>
 </body>
 </html>
