@@ -1,23 +1,58 @@
-const fs = require('fs');
-const path = require('path');
+const { kv } = require('@vercel/kv');
 const crypto = require('crypto');
 
-// Use /tmp for Vercel serverless (persists during warm instances)
-const GALLERY_FILE = path.join('/tmp', 'gallery.json');
 const GALLERY_MAX = 100;
 
-function loadGallery() {
-    try {
-        const data = fs.readFileSync(GALLERY_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return [];
+// ============================================================
+//  Vercel KV Storage Helpers
+//  - 'gallery_ids'      → Array of doodle IDs (ordered)
+//  - 'doodle:{id}'      → Individual doodle JSON object
+// ============================================================
+
+async function loadGallery() {
+    const ids = await kv.get('gallery_ids') || [];
+    if (ids.length === 0) return [];
+
+    // Fetch all doodles in parallel
+    const keys = ids.map(id => 'doodle:' + id);
+    const doodles = await kv.mget(...keys);
+
+    // Filter out nulls (deleted or expired entries)
+    return doodles.filter(Boolean);
+}
+
+async function saveDoodle(entry) {
+    await kv.set('doodle:' + entry.id, entry);
+
+    const ids = await kv.get('gallery_ids') || [];
+    ids.push(entry.id);
+
+    // Trim if over max: remove oldest low-liked entries
+    if (ids.length > GALLERY_MAX) {
+        const all = await loadGallery();
+        all.sort((a, b) => (b.likes || 0) - (a.likes || 0) || (b.created_at || 0) - (a.created_at || 0));
+        const keep = all.slice(0, GALLERY_MAX);
+        const keepIds = keep.map(d => d.id);
+
+        // Delete removed doodles
+        const removeIds = ids.filter(id => !keepIds.includes(id));
+        for (const rid of removeIds) {
+            await kv.del('doodle:' + rid);
+        }
+
+        await kv.set('gallery_ids', keepIds);
+    } else {
+        await kv.set('gallery_ids', ids);
     }
 }
 
-function saveGallery(data) {
-    fs.writeFileSync(GALLERY_FILE, JSON.stringify(data), 'utf-8');
+async function updateDoodle(doodle) {
+    await kv.set('doodle:' + doodle.id, doodle);
 }
+
+// ============================================================
+//  API Handler
+// ============================================================
 
 module.exports = async (req, res) => {
     // CORS headers
@@ -30,19 +65,19 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // GET /api/gallery - List all doodles sorted by likes
+        // GET /api/gallery — List all doodles sorted by likes
         if (req.method === 'GET') {
-            const gallery = loadGallery();
+            const gallery = await loadGallery();
             gallery.sort((a, b) => (b.likes || 0) - (a.likes || 0) || (b.created_at || 0) - (a.created_at || 0));
             return res.status(200).json({ gallery });
         }
 
-        // POST /api/gallery - Save, Like, Unlike
+        // POST /api/gallery — Save, Like, Unlike
         if (req.method === 'POST') {
             const { action, image, title, id } = req.body || {};
 
+            // --- Save ---
             if (action === 'save' || (!action && image)) {
-                // Save new doodle
                 if (!image) {
                     return res.status(400).json({ error: '이미지 데이터가 필요합니다.' });
                 }
@@ -55,48 +90,40 @@ module.exports = async (req, res) => {
                     created_at: Date.now() / 1000
                 };
 
-                const gallery = loadGallery();
-                gallery.push(entry);
-
-                if (gallery.length > GALLERY_MAX) {
-                    gallery.sort((a, b) => (b.likes || 0) - (a.likes || 0) || (b.created_at || 0) - (a.created_at || 0));
-                    gallery.length = GALLERY_MAX;
-                }
-
-                saveGallery(gallery);
+                await saveDoodle(entry);
                 return res.status(200).json({ success: true, id: entry.id });
             }
 
+            // --- Like ---
             if (action === 'like') {
                 if (!id) {
                     return res.status(400).json({ error: '낙서 ID가 필요합니다.' });
                 }
 
-                const gallery = loadGallery();
-                const item = gallery.find(g => g.id === id);
-                if (!item) {
+                const doodle = await kv.get('doodle:' + id);
+                if (!doodle) {
                     return res.status(404).json({ error: '해당 낙서를 찾을 수 없습니다.' });
                 }
 
-                item.likes = (item.likes || 0) + 1;
-                saveGallery(gallery);
-                return res.status(200).json({ success: true, likes: item.likes });
+                doodle.likes = (doodle.likes || 0) + 1;
+                await updateDoodle(doodle);
+                return res.status(200).json({ success: true, likes: doodle.likes });
             }
 
+            // --- Unlike ---
             if (action === 'unlike') {
                 if (!id) {
                     return res.status(400).json({ error: '낙서 ID가 필요합니다.' });
                 }
 
-                const gallery = loadGallery();
-                const item = gallery.find(g => g.id === id);
-                if (!item) {
+                const doodle = await kv.get('doodle:' + id);
+                if (!doodle) {
                     return res.status(404).json({ error: '해당 낙서를 찾을 수 없습니다.' });
                 }
 
-                item.likes = Math.max(0, (item.likes || 0) - 1);
-                saveGallery(gallery);
-                return res.status(200).json({ success: true, likes: item.likes });
+                doodle.likes = Math.max(0, (doodle.likes || 0) - 1);
+                await updateDoodle(doodle);
+                return res.status(200).json({ success: true, likes: doodle.likes });
             }
 
             return res.status(400).json({ error: '올바른 action을 지정해주세요 (save, like, unlike).' });
@@ -104,6 +131,7 @@ module.exports = async (req, res) => {
 
         return res.status(405).json({ error: 'Method not allowed' });
     } catch (e) {
+        console.error('Gallery API error:', e);
         return res.status(500).json({ error: e.message });
     }
 };
